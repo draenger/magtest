@@ -7,20 +7,23 @@ class BenchmarkRunner:
         self.benchmark_factory = benchmark_factory
 
     def run_benchmarks(self):
-        results = {}
-        for model_name in self.models:
-            model = self.model_factory.get_model(model_name)
-            model_results = {}
-            for benchmark_name in self.benchmarks:
-                benchmark = self.benchmark_factory.get_benchmark(benchmark_name)
+        results = {benchmark_name: {} for benchmark_name in self.benchmarks}
+        print("Running benchmarks...")
+
+        for benchmark_name in self.benchmarks:
+            print("\n=========================================")
+            print(f"Running {benchmark_name} benchmark for all models...")
+            benchmark = self.benchmark_factory.get_benchmark(benchmark_name)
+            print()
+
+            for model_name in self.models:
+                model = self.model_factory.get_model(model_name)
                 score = benchmark.run_benchmark(model)
-                model_results[benchmark_name] = score
-            results[model_name] = model_results
+                results[benchmark_name][model_name] = score
+                print(f"Model: {model_name} score: {score}")
 
-        self.print_results(results)
+            print(f"\nFinished {benchmark_name} benchmark for all models")
+        print("=========================================")
+        print("\nAll benchmarks completed.")
 
-    def print_results(self, results):
-        for model_name, model_results in results.items():
-            print(f"\nResults for {model_name}:")
-            for benchmark_name, score in model_results.items():
-                print(f"  {benchmark_name}: {score:.2f}")
+        print(results)

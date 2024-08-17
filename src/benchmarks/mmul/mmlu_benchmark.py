@@ -4,9 +4,11 @@ from time import perf_counter
 
 
 class MMULBenchmark(Benchmark):
-    def __init__(self, model_result_repo, data_set_dir="test"):
+    def __init__(
+        self, model_result_repo, data_set_dir="test", max_tests_per_benchmark=1
+    ):
         self.model_result_repo = model_result_repo
-        self.data = self.__load_data__(data_set_dir)
+        self.data = self.__load_data__(data_set_dir, max_tests_per_benchmark)
         self.overall_correct = 0
         self.overall_total = 0
         self.results = {}
@@ -45,9 +47,9 @@ class MMULBenchmark(Benchmark):
         accuracy = correct / total
         return accuracy
 
-    def __load_data__(self, data_set_dir):
+    def __load_data__(self, data_set_dir, max_tests_per_benchmark):
         data_loader = MMULDataLoader(data_set_dir=data_set_dir)
-        mmlu_data = data_loader.process_data()
+        mmlu_data = data_loader.process_data(max_tests_per_benchmark)
 
         if mmlu_data is None:
             print(

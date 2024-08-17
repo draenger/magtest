@@ -52,7 +52,7 @@ class MMULDataLoader:
             tar.extractall(path=self.save_dir)
         print("Extraction completed.")
 
-    def load_data(self):
+    def load_data(self, max_tests_per_benchmark=1):
         if not os.path.exists(self.sub_dir):
             print("Test data directory not found. Please extract the data first.")
             return None
@@ -69,10 +69,14 @@ class MMULDataLoader:
 
         combined_data = pd.concat(all_data, ignore_index=True)
         print(f"Combined data shape: {combined_data.shape}")
-        print(f"Columns: {combined_data.columns.tolist()}")
+
         return combined_data
 
-    def process_data(self):
+    def process_data(self, max_tests_per_benchmark):
         self.download_data()
         self.extract_data()
-        return self.load_data()
+        data = self.load_data(max_tests_per_benchmark)
+        if max_tests_per_benchmark > 0:  # 0 is a special case that means no limit
+            data = data.head(max_tests_per_benchmark)
+            print(f"Filtered Combined data shape: {data.shape}")
+        return data
