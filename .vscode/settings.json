@@ -1,4 +1,12 @@
 {
   "python.terminal.activateEnvironment": true,
-  "python.defaultInterpreterPath": "./.venv/Scripts/python.exe"
+  "python.defaultInterpreterPath": "./.venv/Scripts/python.exe",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": { "when": "$(basename).py" }
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
+  }
 }

@@ -1,12 +1,13 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from config import Config
 from .models import Base
+from dotenv import load_dotenv
 
 class Database:
     def __init__(self):
-        config = Config()
-        self.engine = create_engine(config.get_database_url())
+        load_dotenv()
+        self.engine = create_engine(os.getenv('DATABASE_CONNECTION_STRING'))
         self.Session = sessionmaker(bind=self.engine)
 
     def create_all_tables(self):
