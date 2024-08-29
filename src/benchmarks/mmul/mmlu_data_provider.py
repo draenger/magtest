@@ -1,20 +1,26 @@
 import os
 import pandas as pd
 from benchmarks.util.data_downloader import DataDownloader
-from .categories import categories, subcategories
+from .mmul_file_data_loader import MMULFileDataLoader
+from .mmul_db_data_loader import MMULDBDataLoader
+from .data_filterer import DataFilterer
 
 
-class MMULDataLoader:
+class MMULDataProvider:
     def __init__(
         self,
+        database,
         url="https://people.eecs.berkeley.edu/~hendrycks/data.tar",
         save_dir="test_data/mmlu_data",
         data_set_dir="test",
     ):
-        self.downloader = DataDownloader(url, save_dir)
         self.unpacked_file_dir = None
         self.sub_dir = None
         self.sub_dir_name = data_set_dir
+        self.downloader = DataDownloader(url, save_dir)
+        self.file_data_provider = MMULFileDataLoader()
+        self.db_data_loader = MMULDBDataLoader(database)
+        self.data_filterer = DataFilterer()
 
     def process_data(self, max_tests_per_benchmark):
         test_data = self.__load_data__(max_tests_per_benchmark, data_set="test")
@@ -22,18 +28,25 @@ class MMULDataLoader:
         return {"test": test_data, "dev": dev_data}
 
     def __load_data__(self, max_tests_per_benchmark=0, data_set="test"):
+        data_from_db = self.db_data_loader.load_data(data_set)
+        if not data_from_db.empty:
+            return self.data_filterer.filter_data(
+                data_from_db, max_tests_per_benchmark, data_set
+            )
+
         self.__ensure_data_directory__(data_set)
         file_suffix = f"_{data_set}.csv"
-        all_data, files_with_less_records = self.__process_files__(
-            file_suffix, max_tests_per_benchmark
+        all_data, files_with_less_records = self.file_data_provider.process_files(
+            self.sub_dir, file_suffix, max_tests_per_benchmark
         )
         combined_data = self.__combine_data__(all_data, data_set)
         self.__print_files_with_less_records__(
             files_with_less_records, max_tests_per_benchmark, data_set
         )
-        filtered_data = self.__filter_data__(
+        filtered_data = self.data_filterer.filter_data(
             combined_data, max_tests_per_benchmark, data_set
         )
+        self.db_data_loader.save_data(filtered_data, data_set)
         return filtered_data
 
     def __ensure_data_directory__(self, data_set):
@@ -45,46 +58,6 @@ class MMULDataLoader:
             raise FileNotFoundError(
                 f"{data_set.capitalize()} data directory not found. Please extract the data first."
             )
-
-    def __process_files__(self, file_suffix, max_tests_per_benchmark):
-        all_data = []
-        files_with_less_records = []
-        for file in os.listdir(self.sub_dir):
-            if file.endswith(file_suffix):
-                df = self.__process_single_file__(
-                    file, file_suffix, max_tests_per_benchmark
-                )
-                all_data.append(df)
-                if max_tests_per_benchmark > 0 and len(df) < max_tests_per_benchmark:
-                    files_with_less_records.append((file, len(df)))
-        return all_data, files_with_less_records
-
-    def __process_single_file__(self, file, file_suffix, max_tests_per_benchmark):
-        subcategory = file.replace(file_suffix, "")
-        df = pd.read_csv(os.path.join(self.sub_dir, file), header=None)
-        df["subcategory"] = subcategory
-        df["category"] = self.__get_category__(subcategory)
-        df["group"] = self.__get_group__(df["category"].iloc[0])
-        df.columns = [
-            "question",
-            "A",
-            "B",
-            "C",
-            "D",
-            "answer",
-            "subcategory",
-            "category",
-            "group",
-        ]
-        return df
-
-    def __get_category__(self, subcategory):
-        return next(
-            (v[0] for k, v in subcategories.items() if k == subcategory), "unknown"
-        )
-
-    def __get_group__(self, category):
-        return next((k for k, v in categories.items() if category in v), "unknown")
 
     def __combine_data__(self, all_data, data_set):
         combined_data = pd.concat(all_data, ignore_index=True)
@@ -107,14 +80,3 @@ class MMULDataLoader:
             print(f"\nAverage record count: {avg_count:.2f}")
             print(f"Total files: {len(files_with_less_records)}")
             print()
-
-    def __filter_data__(self, combined_data, max_tests_per_benchmark, data_set):
-        if max_tests_per_benchmark > 0:
-            filtered_data = (
-                combined_data.groupby("subcategory")
-                .apply(lambda x: x.sample(min(len(x), max_tests_per_benchmark)))
-                .reset_index(drop=True)
-            )
-            print(f"Filtered {data_set} data shape: {filtered_data.shape}")
-            return filtered_data
-        return combined_data
