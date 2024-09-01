@@ -14,6 +14,7 @@ class PreparedQuestion(Base):
     category = Column(String, nullable=False)
     query = Column(String, nullable=False)
     correct_answer = Column(String, nullable=False)
+    num_few_shot = Column(Integer)
 
     model_results = relationship("ModelResult", back_populates="prepared_question")
 

@@ -1,5 +1,6 @@
 from .repository import Repository
-from data.models import ModelResult
+from data.models import ModelResult, PreparedQuestion
+from sqlalchemy import and_
 from datetime import datetime
 
 
@@ -64,3 +65,27 @@ class ModelResultRepository(Repository):
         )
         session.close()
         return results
+
+    def get_results_for_session_and_model(self, test_session_id, model_name):
+        session = self.db.get_session()
+        try:
+            results = (
+                session.query(self.model)
+                .join(
+                    PreparedQuestion,
+                    self.model.prepared_question_id == PreparedQuestion.id,
+                )
+                .filter(
+                    and_(
+                        PreparedQuestion.test_session_id == test_session_id,
+                        self.model.model_name == model_name,
+                    )
+                )
+                .all()
+            )
+            return results
+        except Exception as e:
+            print(f"Error getting results for session and model: {e}")
+            return []
+        finally:
+            session.close()

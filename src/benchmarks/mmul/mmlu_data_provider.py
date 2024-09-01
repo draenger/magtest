@@ -1,30 +1,30 @@
 import os
 import pandas as pd
-from benchmarks.util.data_downloader import DataDownloader
+from benchmarks.util import DataDownloader
 from .mmul_file_data_loader import MMULFileDataLoader
 from .mmul_db_data_loader import MMULDBDataLoader
-from .data_filterer import DataFilterer
+from .mmul_data_filterer import MMULDataFilterer
 
 
 class MMULDataProvider:
     def __init__(
         self,
-        database,
+        mmul_question_repository,
         url="https://people.eecs.berkeley.edu/~hendrycks/data.tar",
         save_dir="test_data/mmlu_data",
-        data_set_dir="test",
     ):
         self.unpacked_file_dir = None
         self.sub_dir = None
-        self.sub_dir_name = data_set_dir
         self.downloader = DataDownloader(url, save_dir)
         self.file_data_provider = MMULFileDataLoader()
-        self.db_data_loader = MMULDBDataLoader(database)
-        self.data_filterer = DataFilterer()
+        self.db_data_loader = MMULDBDataLoader(mmul_question_repository)
+        self.data_filterer = MMULDataFilterer()
 
     def process_data(self, max_tests_per_benchmark):
         test_data = self.__load_data__(max_tests_per_benchmark, data_set="test")
-        dev_data = self.__load_data__(max_tests_per_benchmark=0, data_set="dev")
+        dev_data = self.__load_data__(
+            max_tests_per_benchmark=0, data_set="dev"
+        )  ### 0 means load all data
         return {"test": test_data, "dev": dev_data}
 
     def __load_data__(self, max_tests_per_benchmark=0, data_set="test"):
@@ -39,10 +39,13 @@ class MMULDataProvider:
         all_data, files_with_less_records = self.file_data_provider.process_files(
             self.sub_dir, file_suffix, max_tests_per_benchmark
         )
-        combined_data = self.__combine_data__(all_data, data_set)
+
         self.__print_files_with_less_records__(
             files_with_less_records, max_tests_per_benchmark, data_set
         )
+
+        ### this is kinda stupit firstr combine the filter is actualy doing group by
+        combined_data = self.__combine_data__(all_data, data_set)
         filtered_data = self.data_filterer.filter_data(
             combined_data, max_tests_per_benchmark, data_set
         )

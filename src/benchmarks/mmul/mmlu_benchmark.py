@@ -1,73 +1,80 @@
 from benchmarks import Benchmark
 from time import perf_counter
+import tiktoken
 
 
 class MMULBenchmark(Benchmark):
-    def __init__(self, model_result_repo, test_preparation):
+    def __init__(
+        self,
+        test_session_id,
+        prepared_question_repo,
+        model_result_repo,
+        test_preparation,
+        max_tests_per_benchmark,
+        num_few_shot,
+    ):
+        self.test_session_id = test_session_id
+        self.prepared_question_repo = prepared_question_repo
         self.model_result_repo = model_result_repo
         self.test_preparation = test_preparation
-        self.results = {}
-        self.overall_correct = 0
-        self.overall_total = 0
+        self.test_preparation.prepare_test_data(max_tests_per_benchmark, num_few_shot)
 
-    def run_benchmark(self, model, max_tests_per_benchmark, num_few_shot):
-        prepared_data, test_session_id = self.test_preparation.prepare_test_data(
-            max_tests_per_benchmark, num_few_shot
+    def estimate_model_results(self, model):
+        prepared_questions = self.prepared_question_repo.get_by_test_session(
+            self.test_session_id
         )
 
-        for test_case in prepared_data:
-            # Calculate estimated tokens and costs
-            estimated_in_tokens = len(
-                test_case["prompt"].split()
-            )  # This is a very naive estimation
-            estimated_out_tokens = 1  # Assuming single letter response
-            estimated_in_cost = estimated_in_tokens * 0.001  # Dummy cost calculation
-            estimated_out_cost = estimated_out_tokens * 0.002  # Dummy cost calculation
+        for prepared_question in prepared_questions:
+            estimated_in_tokens = model.estimate_tokens_ammount(prepared_question.query)
+            estimated_out_tokens = 1
 
-            model_result = self.model_result_repo.add(
-                prepared_question_id=test_case["id"],
-                model_name=model.model_name,
+            self.model_result_repo.add(
+                prepared_question_id=prepared_question.id,
+                model_name=model.get_model_name(),
                 estimated_in_tokens=estimated_in_tokens,
                 estimated_out_tokens=estimated_out_tokens,
-                estimated_in_cost=estimated_in_cost,
-                estimated_out_cost=estimated_out_cost,
+                estimated_in_cost=estimated_in_tokens * model.get_model_in_token_cost(),
+                estimated_out_cost=estimated_out_tokens
+                * model.get_model_out_token_cost(),
             )
 
+    def run_benchmark(self, model):
+        model_results = self.model_result_repo.get_results_for_session_and_model(
+            self.test_session_id, model.get_model_name()
+        )
+        prepared_questions = {
+            q.id: q
+            for q in self.prepared_question_repo.get_by_test_session(
+                self.test_session_id
+            )
+        }
+
+        for model_result in model_results:
+            prepared_question = prepared_questions.get(
+                model_result.prepared_question_id
+            )
+            if not prepared_question:
+                print(
+                    f"Warning: PreparedQuestion not found for id {model_result.prepared_question_id}"
+                )
+                continue
+
             start_time = perf_counter()
-            model_answer = model.predict(test_case["prompt"])
+            model_answer = model.predict(prepared_question.query)
             end_time = perf_counter()
 
-            execution_time = end_time - start_time
-            is_correct = model_answer == test_case["answer"]
-            score = 1 if is_correct else 0
-
-            self.overall_correct += score
-            self.overall_total += 1
-
-            if test_case["category"] not in self.results:
-                self.results[test_case["category"]] = {"correct": 0, "total": 0}
-            self.results[test_case["category"]]["correct"] += score
-            self.results[test_case["category"]]["total"] += 1
-
-            # Calculate actual tokens and costs
-            actual_in_tokens = len(
-                test_case["prompt"].split()
-            )  # This is a very naive calculation
-            actual_out_tokens = len(model_answer)
-            actual_in_cost = actual_in_tokens * 0.001  # Dummy cost calculation
-            actual_out_cost = actual_out_tokens * 0.002  # Dummy cost calculation
+            correct_answer = prepared_question.correct_answer
+            score = 1 if model_answer == correct_answer else 0
 
             self.model_result_repo.update_execution_results(
                 model_result.id,
                 response=model_answer,
-                actual_in_tokens=actual_in_tokens,
-                actual_out_tokens=actual_out_tokens,
-                actual_in_cost=actual_in_cost,
-                actual_out_cost=actual_out_cost,
-                execution_time=execution_time,
+                actual_in_tokens=model.get_model_in_token_used(),
+                actual_out_tokens=model.get_model_out_token_used(),
+                actual_in_cost=model.get_model_in_token_used()
+                * model.get_model_in_token_cost(),
+                actual_out_cost=model.get_model_out_token_used()
+                * model.get_model_out_token_cost(),
+                execution_time=end_time - start_time,
                 score=score,
             )
-
-        return self.get_overall_accuracy()
-
-    # ... (other methods remain the same)

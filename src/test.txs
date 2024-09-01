@@ -1,0 +1,14 @@
+Question: Olivia used the rule "Add 11" to create the number pattern shown below. 10, 21, 32, 43, 54 Which statement about the number pattern is true?
+Options: A. The 10th number in the pattern will be an even number., B. The number pattern will never have two even numbers next to each other., C. The next two numbers in the pattern will be an even number then an odd number., D. If the number pattern started with an odd number then the pattern would have only odd numbers in it.
+Answer: BQuestion: Statement 1 | Every element of a group generates a cyclic subgroup of the group. Statement 2 | The symmetric group S_10 has 10 elements.
+Options: A. True, True, B. False, False, C. True, False, D. False, True
+Answer: CQuestion: Which expression is equivalent to 5 x 9?
+Options: A. (5 x 4) x (6 x 5), B. (5 x 5) + (5 x 4), C. (5 x 5) + (5 x 9), D. (5 x 9) x (6 x 9)
+Answer: BQuestion: Simplify and write the result with a rational denominator: $$\sqrt{\sqrt[3]{\sqrt{\frac{1}{729}}}}$$
+Options: A. \frac{3\sqrt{3}}{3}, B. \frac{1}{3}, C. \sqrt{3}, D. \frac{\sqrt{3}}{3}
+Answer: DQuestion: Joe was in charge of lights for a dance. The red light blinks every two seconds, the yellow light every three seconds, and the blue light every five seconds. If we include the very beginning and very end of the dance, how many times during a seven minute dance will all the lights come on at the same time? (Assume that all three lights blink simultaneously at the very beginning of the dance.)
+Options: A. 3, B. 15, C. 6, D. 5
+Answer: B
+Question: Statement 1 | If G, H and K are groups of order 4, at least two of them are isomorphic. Statement 2 | If Z_r + Z_s is isomorphic to a subgroup Z_m + Z_n, then r divides m and s divides n.
+Options: A. True, True, B. False, False, C. True, False, D. False, True
+Answer with just the letter of the correct option (A, B, C, or D).

@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from .categories import categories, subcategories
+from .mmul_categories import categories, subcategories
 
 
 class MMULFileDataLoader:
