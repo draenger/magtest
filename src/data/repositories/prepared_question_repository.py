@@ -31,3 +31,14 @@ class PreparedQuestionRepository(Repository):
         )
         session.close()
         return questions
+
+    def get_by_test_session_and_benchmark(self, test_session_id, benchmark_name):
+        session = self.db.get_session()
+        questions = (
+            session.query(self.model)
+            .filter(self.model.test_session_id == test_session_id)
+            .filter(self.model.benchmark_name == benchmark_name)
+            .all()
+        )
+        session.close()
+        return questions

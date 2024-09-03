@@ -17,11 +17,29 @@ class MMULBenchmark(Benchmark):
         self.prepared_question_repo = prepared_question_repo
         self.model_result_repo = model_result_repo
         self.test_preparation = test_preparation
-        self.test_preparation.prepare_test_data(max_tests_per_benchmark, num_few_shot)
+        self.benchmark_name = "MMUL-" + str(num_few_shot) + "Shot"
+        self.test_preparation.prepare_test_data(
+            self.benchmark_name, max_tests_per_benchmark, num_few_shot
+        )
 
     def estimate_model_results(self, model):
-        prepared_questions = self.prepared_question_repo.get_by_test_session(
-            self.test_session_id
+        # Check if estimation already exists for this session, benchmark, and model
+        existing_results = (
+            self.model_result_repo.get_results_for_session_benchmark_and_model(
+                self.test_session_id, self.benchmark_name, model.get_model_name()
+            )
+        )
+
+        if existing_results:
+            print(
+                f"Estimation already exists for benchmark {self.benchmark_name}, session {self.test_session_id}, and model {model.get_model_name()}"
+            )
+            return
+
+        prepared_questions = (
+            self.prepared_question_repo.get_by_test_session_and_benchmark(
+                self.test_session_id, self.benchmark_name
+            )
         )
 
         for prepared_question in prepared_questions:
@@ -39,13 +57,15 @@ class MMULBenchmark(Benchmark):
             )
 
     def run_benchmark(self, model):
-        model_results = self.model_result_repo.get_results_for_session_and_model(
-            self.test_session_id, model.get_model_name()
+        model_results = (
+            self.model_result_repo.get_results_for_session_benchmark_and_model(
+                self.test_session_id, self.benchmark_name, model.get_model_name()
+            )
         )
         prepared_questions = {
             q.id: q
-            for q in self.prepared_question_repo.get_by_test_session(
-                self.test_session_id
+            for q in self.prepared_question_repo.get_by_test_session_and_benchmark(
+                self.test_session_id, self.benchmark_name
             )
         }
 

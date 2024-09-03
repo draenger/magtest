@@ -89,3 +89,30 @@ class ModelResultRepository(Repository):
             return []
         finally:
             session.close()
+
+    def get_results_for_session_benchmark_and_model(
+        self, test_session_id, benchmark_name, model_name
+    ):
+        session = self.db.get_session()
+        try:
+            results = (
+                session.query(self.model)
+                .join(
+                    PreparedQuestion,
+                    self.model.prepared_question_id == PreparedQuestion.id,
+                )
+                .filter(
+                    and_(
+                        PreparedQuestion.test_session_id == test_session_id,
+                        PreparedQuestion.benchmark_name == benchmark_name,
+                        self.model.model_name == model_name,
+                    )
+                )
+                .all()
+            )
+            return results
+        except Exception as e:
+            print(f"Error getting results for session, benchmark, and model: {e}")
+            return []
+        finally:
+            session.close()

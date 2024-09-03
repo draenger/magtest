@@ -7,8 +7,8 @@ class TestModel(AIModel):
         self,
         model_name="TestModel",
         tokenizer=None,
-        input_cost_per_million=1000,
-        output_cost_per_million=2000,
+        input_cost_per_million=1,
+        output_cost_per_million=1,
     ):
         self.model_name = model_name
         self.usage = {"prompt_tokens": 0, "completion_tokens": 0}
@@ -32,16 +32,9 @@ class TestModel(AIModel):
         return self.usage["completion_tokens"]
 
     def predict(self, prompt):
-        if self.tokenizer:
-            self.usage["prompt_tokens"] += len(self.tokenizer.encode(prompt))
-        else:
-            self.usage["prompt_tokens"] += len(prompt.split())
-
-        self.usage["completion_tokens"] += 1  # Assume 1 output token
-        return random.choice(["A", "B", "C", "D"])  # Randomly select an answer
+        self.usage["prompt_tokens"] = len(self.tokenizer.encode(prompt))
+        self.usage["completion_tokens"] = 1
+        return random.choice(["A", "B", "C", "D"])
 
     def estimate_tokens_ammount(self, text):
-        if self.tokenizer:
-            return len(self.tokenizer.encode(text))
-        else:
-            return len(text.split())  # Simple estimation if tokenizer is not provided
+        return len(self.tokenizer.encode(text))

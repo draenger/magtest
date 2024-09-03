@@ -11,58 +11,53 @@ class ModelsRegistry:
             "test",
             TestModel,
             tokenizer=tiktoken.get_encoding("cl100k_base"),
-            input_cost_per_million=1,  # Example cost
-            output_cost_per_million=2,  # Example cost
+            input_cost_per_million=1,
+            output_cost_per_million=1,
         )
+
+    def register_test_openai_models(self):
+        tokenizer = tiktoken.get_encoding("cl100k_base")
+
+        models = [
+            ("test-gpt-4o", 5, 15),
+            ("test-gpt-4o-mini", 0.150, 0.600),
+            ("test-gpt-4-turbo", 10, 30),
+            ("test-gpt-4", 30, 60),
+            ("test-gpt-3.5-turbo-0125", 0.50, 1.50),
+        ]
+
+        for model_name, input_cost, output_cost in models:
+            self.model_factory.register_model(
+                model_name,
+                TestModel,
+                tokenizer=tokenizer,
+                input_cost_per_million=input_cost,
+                output_cost_per_million=output_cost,
+                model_name=model_name,
+            )
 
     def register_openai_models(self):
         tokenizer = tiktoken.get_encoding("cl100k_base")
+        rpm_limit = 500
 
-        self.model_factory.register_model(
-            "gpt-4o",
-            OpenAIModel,
-            tokenizer=tokenizer,
-            input_cost_per_million=5,
-            output_cost_per_million=15,
-            model_name="gpt-4o",
-            rpm_limit=500,
-        )
-        self.model_factory.register_model(
-            "gpt-4o-mini",
-            OpenAIModel,
-            tokenizer=tokenizer,
-            input_cost_per_million=0.150,
-            output_cost_per_million=0.600,
-            model_name="gpt-4o-mini",
-            rpm_limit=500,
-        )
-        self.model_factory.register_model(
-            "gpt-4-turbo",
-            OpenAIModel,
-            tokenizer=tokenizer,
-            input_cost_per_million=10,
-            output_cost_per_million=30,
-            model_name="gpt-4-turbo",
-            rpm_limit=500,
-        )
-        self.model_factory.register_model(
-            "gpt-4",
-            OpenAIModel,
-            tokenizer=tokenizer,
-            input_cost_per_million=30,
-            output_cost_per_million=60,
-            model_name="gpt-4",
-            rpm_limit=500,
-        )
-        self.model_factory.register_model(
-            "gpt-3.5-turbo-0125",
-            OpenAIModel,
-            tokenizer=tokenizer,
-            input_cost_per_million=0.50,
-            output_cost_per_million=1.50,
-            model_name="gpt-3.5-turbo-0125",
-            rpm_limit=500,
-        )
+        models = [
+            ("gpt-4o", 5, 15, rpm_limit),
+            ("gpt-4o-mini", 0.150, 0.600, rpm_limit),
+            ("gpt-4-turbo", 10, 30, rpm_limit),
+            ("gpt-4", 30, 60, rpm_limit),
+            ("gpt-3.5-turbo-0125", 0.50, 1.50, rpm_limit),
+        ]
+
+        for model_name, input_cost, output_cost, rpm_limit in models:
+            self.model_factory.register_model(
+                model_name,
+                OpenAIModel,
+                tokenizer=tokenizer,
+                input_cost_per_million=input_cost,
+                output_cost_per_million=output_cost,
+                model_name=model_name,
+                rpm_limit=rpm_limit,
+            )
 
     def get_factory(self):
         return self.model_factory
