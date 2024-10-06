@@ -8,12 +8,14 @@ class BenchmarkRegistry:
         mmul_question_repository,
         prepared_question_repo,
         model_result_repo,
+        batch_job_repo,
         test_session_id,
         max_tests_per_benchmark,
     ):
         self.mmul_question_repository = mmul_question_repository
         self.prepared_question_repo = prepared_question_repo
         self.model_result_repo = model_result_repo
+        self.batch_job_repo = batch_job_repo
         self.test_session_id = test_session_id
         self.max_tests_per_benchmark = max_tests_per_benchmark
         self.benchmark_factory = BenchmarkFactory()
@@ -30,6 +32,7 @@ class BenchmarkRegistry:
             test_session_id=self.test_session_id,
             prepared_question_repo=self.prepared_question_repo,
             model_result_repo=self.model_result_repo,
+            batch_job_repo=self.batch_job_repo,
             test_preparation=mmul_test_preparation,
             max_tests_per_benchmark=self.max_tests_per_benchmark,
             num_few_shot=0,
@@ -41,6 +44,7 @@ class BenchmarkRegistry:
             test_session_id=self.test_session_id,
             prepared_question_repo=self.prepared_question_repo,
             model_result_repo=self.model_result_repo,
+            batch_job_repo=self.batch_job_repo,
             test_preparation=mmul_test_preparation,
             max_tests_per_benchmark=self.max_tests_per_benchmark,
             num_few_shot=5,

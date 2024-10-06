@@ -1,4 +1,3 @@
-# benchmark_factory.py
 class BenchmarkFactory:
     def __init__(self):
         self.benchmarks = {}
@@ -10,6 +9,7 @@ class BenchmarkFactory:
         test_session_id,
         prepared_question_repo,
         model_result_repo,
+        batch_job_repo,
         test_preparation,
         max_tests_per_benchmark,
         num_few_shot,
@@ -19,6 +19,7 @@ class BenchmarkFactory:
             test_session_id,
             prepared_question_repo,
             model_result_repo,
+            batch_job_repo,
             test_preparation,
             max_tests_per_benchmark,
             num_few_shot,
@@ -33,6 +34,7 @@ class BenchmarkFactory:
             test_session_id,
             prepared_question_repo,
             model_result_repo,
+            batch_job_repo,
             test_preparation,
             max_tests_per_benchmark,
             num_few_shot,
@@ -41,6 +43,7 @@ class BenchmarkFactory:
             test_session_id,
             prepared_question_repo,
             model_result_repo,
+            batch_job_repo,
             test_preparation,
             max_tests_per_benchmark,
             num_few_shot,
@@ -48,23 +51,3 @@ class BenchmarkFactory:
 
     def get_registered_benchmarks(self):
         return list(self.benchmarks.keys())
-
-    def register_mmul_benchmark(
-        self,
-        test_session_id,
-        prepared_question_repo,
-        model_result_repo,
-        test_preparation,
-        max_tests_per_benchmark,
-        num_few_shot,
-    ):
-        self.register_benchmark(
-            "MMULBenchmark",
-            MMULBenchmark,
-            test_session_id,
-            prepared_question_repo,
-            model_result_repo,
-            test_preparation,
-            max_tests_per_benchmark,
-            num_few_shot,
-        )

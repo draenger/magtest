@@ -1,13 +1,14 @@
-import logging
+from typing import Callable
 
 
 class BenchmarkRunner:
-    def __init__(self, models_registry, benchmark_registry):
-        self.model_factory = models_registry.get_factory()
+    def __init__(self, model_registry, benchmark_registry):
+        self.model_factory = model_registry.get_factory()
         self.benchmark_factory = benchmark_registry.get_factory()
-        self.logger = logging.getLogger(__name__)
 
-    def _run_benchmark_operation(self, operation_name, operation):
+    def _run_benchmark_operation(
+        self, operation_name: str, operation: Callable, in_batch: bool = False
+    ):
         models = self.model_factory.get_registered_models()
         benchmarks = self.benchmark_factory.get_registered_benchmarks()
 
@@ -17,9 +18,9 @@ class BenchmarkRunner:
             for model_name in models:
                 try:
                     model = self.model_factory.get_model(model_name)
-                    operation(benchmark, model)
+                    operation(benchmark, model, in_batch)
                 except Exception as e:
-                    self.logger.error(
+                    print(
                         f"Error running {operation_name} for benchmark {benchmark_name} and model {model_name}: {str(e)}",
                         exc_info=True,
                     )
@@ -27,11 +28,12 @@ class BenchmarkRunner:
     def estimate_model_results(self):
         self._run_benchmark_operation(
             "estimate_model_results",
-            lambda benchmark, model: benchmark.estimate_model_results(model),
+            lambda benchmark, model, _: benchmark.estimate_model_results(model),
         )
 
-    def run_benchmarks(self):
+    def run_benchmarks(self, in_batch: bool = False):
         self._run_benchmark_operation(
             "run_benchmarks",
-            lambda benchmark, model: benchmark.run_benchmark(model),
+            lambda benchmark, model, in_batch: benchmark.run_benchmark(model, in_batch),
+            in_batch,
         )

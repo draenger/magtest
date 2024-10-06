@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class AIModel(ABC):
+class AIModelInterface(ABC):
 
     @abstractmethod
     def get_model_name(self):
