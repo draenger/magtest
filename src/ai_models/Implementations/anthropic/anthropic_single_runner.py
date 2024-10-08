@@ -5,12 +5,14 @@ from ...interfaces import SingleRunnerInterface
 
 
 class AnthropicSingleRunner(SingleRunnerInterface):
-    def __init__(self, client, rpm_limit, tpm_limit, tpd_limit):
+    def __init__(self, client, rpm_limit, rpd_limit, tpm_limit, tpd_limit):
         self.client = client
         self.rpm_limit = rpm_limit
+        self.rpd_limit = rpd_limit
         self.tpm_limit = tpm_limit
         self.tpd_limit = tpd_limit
         self.request_times = []
+        self.daily_requests = 0
         self.token_usage = 0
         self.daily_token_usage = 0
         self.last_reset_time = time.time()
@@ -23,9 +25,10 @@ class AnthropicSingleRunner(SingleRunnerInterface):
         with self.lock:
             current_time = time.time()
 
-            # Reset daily token usage if a new day has started
+            # Reset daily counters if a new day has started
             if current_time - self.last_reset_time >= 86400:  # 24 hours in seconds
                 self.daily_token_usage = 0
+                self.daily_requests = 0
                 self.last_reset_time = current_time
 
             # Manage RPM limit
@@ -34,6 +37,12 @@ class AnthropicSingleRunner(SingleRunnerInterface):
             ]
             if len(self.request_times) >= self.rpm_limit:
                 sleep_time = 60 - (current_time - self.request_times[0])
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+            # Manage RPD limit
+            if self.rpd_limit and self.daily_requests >= self.rpd_limit:
+                sleep_time = self.last_reset_time + 86400 - current_time
                 if sleep_time > 0:
                     time.sleep(sleep_time)
 
@@ -49,9 +58,9 @@ class AnthropicSingleRunner(SingleRunnerInterface):
                 sleep_time = self.last_reset_time + 86400 - current_time
                 if sleep_time > 0:
                     time.sleep(sleep_time)
-                self.daily_token_usage = 0
 
             self.request_times.append(current_time)
+            self.daily_requests += 1
 
     def predict(self, prompt):
         try:

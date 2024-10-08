@@ -15,14 +15,20 @@ class OpenAIModel(AIModelInterface):
         input_cost_per_million,
         output_cost_per_million,
         rpm_limit,
+        rpd_limit,
+        tpm_limit,
+        tpd_limit,
+        batch_queue_limit,
     ):
         self.model_name = model_name
         self.tokenizer = tokenizer
         self.input_cost = input_cost_per_million / 1_000_000
         self.output_cost = output_cost_per_million / 1_000_000
         load_dotenv()
-        self.single_runner = OpenAISingleRunner(self, rpm_limit)
-        self.batch_runner = OpenAIBatchRunner(self)
+        self.single_runner = OpenAISingleRunner(
+            self, rpm_limit, rpd_limit, tpm_limit, tpd_limit
+        )
+        self.batch_runner = OpenAIBatchRunner(self, batch_queue_limit)
 
     def get_model_name(self):
         return self.model_name

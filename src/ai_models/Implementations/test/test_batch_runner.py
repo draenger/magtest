@@ -5,8 +5,9 @@ import time
 
 
 class TestBatchRunner:
-    def __init__(self, client):
+    def __init__(self, client, batch_queue_limit):
         self.client = client
+        self.batch_queue_limit = batch_queue_limit
         self.requests = []
 
     def add_request(self, custom_id, model, messages, max_tokens=1):

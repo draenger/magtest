@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class BatchRunnerInterface(ABC):
     @abstractmethod
-    def __init__(self, client):
+    def __init__(self, client, batch_queue_limit):
         pass
 
     @abstractmethod

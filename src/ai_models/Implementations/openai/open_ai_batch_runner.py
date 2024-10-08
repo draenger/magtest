@@ -5,8 +5,9 @@ from threading import Lock
 
 
 class OpenAIBatchRunner(BatchRunnerInterface):
-    def __init__(self, client):
+    def __init__(self, client, batch_queue_limit):
         self.client = client
+        self.batch_queue_limit = batch_queue_limit
         self.lock = Lock()
         self.requests = []
 

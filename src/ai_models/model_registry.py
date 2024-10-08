@@ -30,6 +30,10 @@ class ModelRegistry:
                 input_cost_per_million=model["input_cost_per_million"],
                 output_cost_per_million=model["output_cost_per_million"],
                 rpm_limit=model["rpm_limit"],
+                rpd_limit=model["rpd_limit"],
+                tpm_limit=model["tpm_limit"],
+                tpd_limit=model["tpd_limit"],
+                batch_queue_limit=model["batch_queue_limit"],
             )
 
     def register_anthropic_models(self):
@@ -44,8 +48,10 @@ class ModelRegistry:
                 input_cost_per_million=model["input_cost_per_million"],
                 output_cost_per_million=model["output_cost_per_million"],
                 rpm_limit=model["rpm_limit"],
+                rpd_limit=model["rpd_limit"],
                 tpm_limit=model["tpm_limit"],
                 tpd_limit=model["tpd_limit"],
+                batch_queue_limit=model["batch_queue_limit"],
             )
 
     def register_test_models(self):
@@ -61,11 +67,14 @@ class ModelRegistry:
                     tokenizer=tokenizer,
                     input_cost_per_million=model["input_cost_per_million"],
                     output_cost_per_million=model["output_cost_per_million"],
-                    rpm_limit=model.get("rpm_limit"),
-                    tpm_limit=model.get("tpm_limit"),
-                    tpd_limit=model.get("tpd_limit"),
+                    rpm_limit=model["rpm_limit"],
+                    rpd_limit=model["rpd_limit"],
+                    tpm_limit=model["tpm_limit"],
+                    tpd_limit=model["tpd_limit"],
+                    batch_queue_limit=model["batch_queue_limit"],
                 )
 
     def register_all_models(self):
         self.register_openai_models()
         self.register_anthropic_models()
+        self.register_test_models()
