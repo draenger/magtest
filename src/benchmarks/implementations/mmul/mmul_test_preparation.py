@@ -2,9 +2,12 @@ import uuid
 
 
 class MMULTestPreparation:
-    def __init__(self, data_provider, prepared_question_repo, test_session_id):
+    def __init__(
+        self, data_provider, prepared_question_repo, model_result_repo, test_session_id
+    ):
         self.data_provider = data_provider
         self.prepared_question_repo = prepared_question_repo
+        self.model_result_repo = model_result_repo
         self.test_session_id = test_session_id
 
     def prepare_test_data(self, benchmark_name, max_tests_per_benchmark, num_few_shot):
@@ -69,3 +72,35 @@ class MMULTestPreparation:
         )
 
         return few_shot_prompt + "\n"
+
+    def estimate_model_results(self, benchmark_name, model):
+        existing_results = (
+            self.model_result_repo.get_results_for_session_benchmark_and_model(
+                self.test_session_id, benchmark_name, model.get_model_name()
+            )
+        )
+
+        if existing_results:
+            print(
+                f"Estimation already exists for benchmark {benchmark_name}, session {self.test_session_id}, and model {model.get_model_name()}"
+            )
+            return
+
+        prepared_questions = (
+            self.prepared_question_repo.get_by_test_session_and_benchmark(
+                self.test_session_id, benchmark_name
+            )
+        )
+
+        for prepared_question in prepared_questions:
+            estimated_in_tokens = model.estimate_tokens_amount(prepared_question.query)
+            estimated_out_tokens = 1
+            self.model_result_repo.add(
+                prepared_question_id=prepared_question.id,
+                model_name=model.get_model_name(),
+                estimated_in_tokens=estimated_in_tokens,
+                estimated_out_tokens=estimated_out_tokens,
+                estimated_in_cost=estimated_in_tokens * model.get_model_in_token_cost(),
+                estimated_out_cost=estimated_out_tokens
+                * model.get_model_out_token_cost(),
+            )

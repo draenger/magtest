@@ -78,3 +78,26 @@ class BatchJobRepository(Repository):
             return None
         finally:
             session.close()
+
+    def get_by_test_session_and_benchmark_and_model(
+        self, test_session_id, benchmark_name, model_name
+    ):
+        session = self.db.get_session()
+        try:
+            batch_jobs = (
+                session.query(BatchJob)
+                .filter(
+                    and_(
+                        BatchJob.test_session_id == test_session_id,
+                        BatchJob.benchmark_name == benchmark_name,
+                        BatchJob.model_name == model_name,
+                    )
+                )
+                .all()
+            )
+            return batch_jobs
+        except Exception as e:
+            print(f"Error getting BatchJobs by test session, benchmark, and model: {e}")
+            return []
+        finally:
+            session.close()

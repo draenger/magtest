@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from benchmarks.util import DataDownloader
+from ....util import DataDownloader
 from .mmul_file_data_loader import MMULFileDataLoader
 from .mmul_db_data_loader import MMULDBDataLoader
 from .mmul_data_filterer import MMULDataFilterer

@@ -1,3 +1,2 @@
-from .anthropic_model import AnthropicModel
-from .anthropic_single_runner import AnthropicSingleRunner
-from .anthropic_batch_runner import AnthropicBatchRunner
+from .anthropic_batch_model import AnthropicBatchModel
+from .anthropic_instant_model import AnthropicInstantModel

@@ -1,3 +1,6 @@
+from .interfaces import BenchmarkInterface
+
+
 class BenchmarkFactory:
     def __init__(self):
         self.benchmarks = {}
@@ -5,7 +8,7 @@ class BenchmarkFactory:
     def register_benchmark(
         self,
         name,
-        benchmark_class,
+        benchmark_class: type[BenchmarkInterface],
         test_session_id,
         prepared_question_repo,
         model_result_repo,
@@ -25,7 +28,7 @@ class BenchmarkFactory:
             num_few_shot,
         )
 
-    def get_benchmark(self, name):
+    def get_benchmark(self, name) -> BenchmarkInterface:
         benchmark_info = self.benchmarks.get(name.lower())
         if benchmark_info is None:
             raise ValueError(f"Benchmark '{name}' not found")
