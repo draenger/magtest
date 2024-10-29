@@ -163,3 +163,4 @@ cython_debug/
 src/test_data
 *.db
 src/batch
+src/src/batch

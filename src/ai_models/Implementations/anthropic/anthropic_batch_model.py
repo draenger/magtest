@@ -2,7 +2,10 @@ from ...base_batch_model import BaseBatchModel
 from ...dto.batch_response import BatchResponse, BatchResponseItem
 from ...dto.usage import Usage
 from anthropic import Anthropic
+from anthropic.types.beta.message_create_params import MessageCreateParamsNonStreaming
+from anthropic.types.beta.messages.batch_create_params import Request
 import os
+from dotenv import load_dotenv
 import json
 from typing import List, Optional
 
@@ -23,17 +26,18 @@ class AnthropicBatchModel(BaseBatchModel):
             output_cost_per_million,
             batch_queue_limit,
         )
-        self.anthropic_client = Anthropic()
+        load_dotenv()
+        self.client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     def add_batch_request(
         self, custom_id: str, messages: List[dict], max_tokens: int = 1
     ):
-        request = {
-            "custom_id": custom_id,
-            "model": self.model_name,
-            "prompt": messages[-1]["content"],
-            "max_tokens_to_sample": max_tokens,
-        }
+        request = Request(
+            custom_id=custom_id,
+            params=MessageCreateParamsNonStreaming(
+                model=self.model_name, max_tokens=max_tokens, messages=messages
+            ),
+        )
         self.requests.append(request)
 
     def run_batch(
@@ -42,68 +46,50 @@ class AnthropicBatchModel(BaseBatchModel):
         metadata: Optional[dict] = None,
         test_session_id: int = None,
     ) -> str:
-        input_file_path = self._prepare_batch(benchmark_name, test_session_id)
-        # Here you would implement the actual batch running logic for Anthropic
-        # This is a placeholder and should be replaced with actual Anthropic batch API calls
-        batch_id = f"anthropic_batch_{benchmark_name}_{self.model_name}"
-        return batch_id
+        message_batch = self.client.beta.messages.batches.create(requests=self.requests)
+        return message_batch.id
 
     def check_batch_results(
         self, benchmark_name: str, batch_id: str, test_session_id: int
     ) -> Optional[BatchResponse]:
-        # Implementation of checking for batch results
-        # This is a placeholder and should be replaced with actual Anthropic batch result checking
-        output_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_results.jsonl"
-        if os.path.exists(output_file_path):
-            return self.process_batch_results(output_file_path)
+        message_batch = self.client.beta.messages.batches.retrieve(batch_id)
+
+        if message_batch.processing_status == "ended":
+            return self.process_batch_results(batch_id)
         return None
 
     def cancel_batch(self, batch_id: str):
-        # Implement batch cancellation for Anthropic
-        return {"status": "cancelled", "batch_id": batch_id}
+        return self.client.beta.messages.batches.cancel(batch_id)
 
     def list_batches(self, limit: int = 10):
-        # Implement batch listing for Anthropic
-        return []
+        return self.client.beta.messages.batches.list(limit=limit)
 
-    def process_batch_results(self, output_file_path: str) -> BatchResponse:
+    def process_batch_results(self, batch_id: str) -> BatchResponse:
         results = []
-        with open(output_file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                data = json.loads(line)
-                custom_id = data["custom_id"]
-                response_data = data["response"]
+        for result in self.client.beta.messages.batches.results(batch_id):
+            custom_id = result.custom_id
+            result_data = result.result
 
-                if response_data["status"] == "success":
-                    response = response_data["completion"]
-                    usage_data = response_data["usage"]
-                    usage = Usage(
-                        usage_data["prompt_tokens"], usage_data["completion_tokens"]
-                    )
-                    status = "success"
-                else:
-                    response = None
-                    usage = None
-                    status = "failed"
+            if result_data.type == "succeeded":
+                message = result_data.message
+                response = message.content[0].text if message.content else None
+                usage = Usage(message.usage.input_tokens, message.usage.output_tokens)
+                status = "success"
+            else:
+                response = None
+                usage = None
+                status = result_data.type
 
-                results.append(
-                    BatchResponseItem(
-                        custom_id=custom_id,
-                        response=response,
-                        usage=usage,
-                        status=status,
-                    )
+            results.append(
+                BatchResponseItem(
+                    custom_id=custom_id,
+                    response=response,
+                    usage=usage,
+                    status=status,
                 )
+            )
 
         return BatchResponse(results)
-
-    def _prepare_batch(self, benchmark_name, test_session_id):
-        input_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_requests.jsonl"
-        os.makedirs(os.path.dirname(input_file_path), exist_ok=True)
-        with open(input_file_path, "w") as f:
-            for request in self.requests:
-                f.write(json.dumps(request) + "\n")
-        return input_file_path
 
     def estimate_tokens_amount(self, messages: List[dict]) -> int:
         total_tokens = 0

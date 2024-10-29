@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 import json
 from typing import List, Optional
+import math
 
 
 class OpenAIBatchModel(BaseBatchModel):
@@ -47,12 +48,9 @@ class OpenAIBatchModel(BaseBatchModel):
         benchmark_name: str,
         metadata: Optional[dict] = None,
         test_session_id: int = None,
-    ) -> str:
-        input_file_path = self._prepare_batch(benchmark_name, test_session_id)
-        input_file = self._upload_file(input_file_path)
-        batch = self._create_batch(input_file.id, metadata)
-        print(f"Batch created: {batch}")
-        return batch.id
+    ) -> List[str]:
+        batches = self._create_batch(metadata, test_session_id, benchmark_name)
+        return batches
 
     def check_batch_results(
         self, benchmark_name: str, batch_id: str, test_session_id: int
@@ -62,7 +60,7 @@ class OpenAIBatchModel(BaseBatchModel):
 
         if batch_status.status == "completed":
             output_file_path = self._download_results(
-                batch_status.output_file_id, benchmark_name, test_session_id
+                batch_status.output_file_id, benchmark_name, test_session_id, batch_id
             )
             return self.process_batch_results(output_file_path)
 
@@ -105,28 +103,74 @@ class OpenAIBatchModel(BaseBatchModel):
 
         return BatchResponse(results)
 
-    def _prepare_batch(self, benchmark_name, test_session_id):
-        input_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_requests.jsonl"
-        os.makedirs(os.path.dirname(input_file_path), exist_ok=True)
-        with open(input_file_path, "w") as f:
+    def _create_batch(self, metadata=None, test_session_id=None, benchmark_name=None):
+        total_tokens = sum(
+            self.estimate_tokens_amount(req["body"]["messages"])
+            for req in self.requests
+        )
+        tokens_per_batch = int(
+            self.batch_queue_limit * 0.9
+        )  # 90% of the batch queue limit because im not sure yet how tokenizer handles this imputs it needs more work
+        num_batches = math.ceil(total_tokens / tokens_per_batch)
+
+        batch_ids = []
+
+        if num_batches == 1:
+            id = self.create_single_batch(
+                self.requests, test_session_id, benchmark_name, metadata
+            )
+            batch_ids.append(id)
+        else:
+            current_batch = []
+            current_tokens = 0
             for request in self.requests:
-                f.write(json.dumps(request) + "\n")
-        return input_file_path
+                request_tokens = self.estimate_tokens_amount(
+                    request["body"]["messages"]
+                )
+                if current_tokens + request_tokens > tokens_per_batch:
+                    id = self.create_single_batch(
+                        current_batch, test_session_id, benchmark_name, metadata
+                    )
+                    batch_ids.append(id)
+                    current_batch = [request]
+                    current_tokens = request_tokens
+                else:
+                    current_batch.append(request)
+                    current_tokens += request_tokens
 
-    def _upload_file(self, file_path):
-        with open(file_path, "rb") as file:
-            return self.client.files.create(file=file, purpose="batch")
+            if current_batch:
+                id = self.create_single_batch(
+                    current_batch, test_session_id, benchmark_name, metadata
+                )
+                batch_ids.append(id)
 
-    def _create_batch(self, input_file_id, metadata=None):
-        return self.client.batches.create(
-            input_file_id=input_file_id,
+        print(f"Created {len(batch_ids)} batches")
+        return batch_ids
+
+    def create_single_batch(
+        self, requests, test_session_id=None, benchmark_name=None, metadata=None
+    ):
+        batch_file = self._create_batch_file(requests, test_session_id, benchmark_name)
+        batch = self.client.batches.create(
+            input_file_id=batch_file.id,
             endpoint="/v1/chat/completions",
             completion_window="24h",
             metadata=metadata,
         )
+        return batch.id
 
-    def _download_results(self, file_id, benchmark_name, test_session_id):
-        output_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_results.jsonl"
+    def _create_batch_file(self, requests, test_session_id, benchmark_name):
+        input_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_requests_{os.urandom(8).hex()}.jsonl"
+        os.makedirs(os.path.dirname(input_file_path), exist_ok=True)
+        with open(input_file_path, "w") as f:
+            for request in requests:
+                f.write(json.dumps(request) + "\n")
+        with open(input_file_path, "rb") as file:
+            uploaded_file = self.client.files.create(file=file, purpose="batch")
+        return uploaded_file
+
+    def _download_results(self, file_id, benchmark_name, test_session_id, batch_id):
+        output_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_{batch_id}_results.jsonl"
         if os.path.exists(output_file_path):
             return output_file_path
 
@@ -137,4 +181,8 @@ class OpenAIBatchModel(BaseBatchModel):
         return output_file_path
 
     def estimate_tokens_amount(self, messages: List[dict]) -> int:
-        return super().estimate_tokens_amount(messages)
+        # Convert messages list to string format that can be processed by base class method
+        messages_str = ""
+        for message in messages:
+            messages_str += f"{message['role']}: {message['content']}\n"
+        return super().estimate_tokens_amount(messages_str)

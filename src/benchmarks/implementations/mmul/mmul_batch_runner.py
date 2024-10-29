@@ -46,7 +46,7 @@ class MMULBatchRunner:
                 max_tokens=1,
             )
 
-        batch_id = model.run_batch(
+        batch_ids = model.run_batch(
             benchmark_name,
             metadata={
                 "description": f"Benchmark[{benchmark_name}], Session[{test_session_id}], model[{model_name}]"
@@ -54,16 +54,16 @@ class MMULBatchRunner:
             test_session_id=test_session_id,
         )
 
-        self.batch_job_repo.add(
-            test_session_id=test_session_id,
-            benchmark_name=benchmark_name,
-            model_name=model_name,
-            batch_id=batch_id,
-        )
-
-        print(
-            f"Batch - Benchmark[{benchmark_name}], Session[{test_session_id}], model[{model_name}] created with ID: {batch_id}"
-        )
+        for batch_id in batch_ids:
+            self.batch_job_repo.add(
+                test_session_id=test_session_id,
+                benchmark_name=benchmark_name,
+                model_name=model_name,
+                batch_id=batch_id,
+            )
+            print(
+                f"Batch - Benchmark[{benchmark_name}], Session[{test_session_id}], model[{model_name}] created with ID: {batch_id}"
+            )
 
         return batch_id
 

@@ -1,30 +1,19 @@
-# batch_progress.py
-
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from colorama import Fore, Back, Style, init
 from typing import List
 
 
-class BatchManager:
+class OpenAIBatchManager:
     def __init__(self):
-        # Inicjalizacja colorama
-        init()
-
-        # Załaduj zmienne środowiskowe z pliku .env
         load_dotenv()
-
-        # Inicjalizacja klienta OpenAI
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def get_batch_info(self, batch_id):
         try:
             return self.client.batches.retrieve(batch_id)
         except Exception as e:
-            print(
-                f"Wystąpił błąd podczas pobierania informacji o batchu {batch_id}: {e}"
-            )
+            print(f"Error retrieving batch info for {batch_id}: {e}")
             return None
 
     def display_batch_progress(self, batch_info):
@@ -46,19 +35,7 @@ class BatchManager:
         in_progress_length = bar_length - completed_length - failed_length
 
         progress_bar = (
-            Fore.GREEN
-            + Back.GREEN
-            + "█" * completed_length
-            + Fore.RED
-            + Back.RED
-            + "█" * failed_length
-            + Fore.YELLOW
-            + Back.YELLOW
-            + "█" * in_progress_length
-            + Fore.WHITE
-            + Back.LIGHTBLACK_EX
-            + "█" * (bar_length - completed_length - failed_length - in_progress_length)
-            + Style.RESET_ALL
+            "█" * completed_length + "x" * failed_length + " " * in_progress_length
         )
 
         print(f"Progress: [{progress_bar}]")

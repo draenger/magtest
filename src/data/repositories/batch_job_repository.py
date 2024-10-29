@@ -101,3 +101,18 @@ class BatchJobRepository(Repository):
             return []
         finally:
             session.close()
+
+    def get_by_test_session(self, test_session_id):
+        session = self.db.get_session()
+        try:
+            batch_jobs = (
+                session.query(BatchJob)
+                .filter(BatchJob.test_session_id == test_session_id)
+                .all()
+            )
+            return batch_jobs
+        except Exception as e:
+            print(f"Error getting BatchJobs by test session: {e}")
+            return []
+        finally:
+            session.close()
