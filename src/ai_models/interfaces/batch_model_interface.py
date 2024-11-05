@@ -27,7 +27,3 @@ class BatchModelInterface(ABC):
     @abstractmethod
     def list_batches(self, limit: int = 10):
         pass
-
-    @abstractmethod
-    def process_batch_results(self, output_file_path: str) -> BatchResponse:
-        pass

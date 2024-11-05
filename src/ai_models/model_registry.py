@@ -2,6 +2,7 @@ import json
 from .model_factory import ModelFactory
 from .implementations.openai import OpenAIBatchModel, OpenAIInstantModel
 from .implementations.anthropic import AnthropicBatchModel, AnthropicInstantModel
+from .implementations.google import GoogleBatchModel, GoogleInstantModel
 from .implementations.test import TestBatchModel, TestInstantModel
 
 
@@ -46,10 +47,12 @@ class ModelRegistry:
     def register_test_models(self):
         self.register_models("anthropic", TestBatchModel, TestInstantModel)
         self.register_models("openai", TestBatchModel, TestInstantModel)
+        self.register_models("google", TestBatchModel, TestInstantModel)
 
     def register_production_models(self):
         self.register_models("anthropic", AnthropicBatchModel, AnthropicInstantModel)
         self.register_models("openai", OpenAIBatchModel, OpenAIInstantModel)
+        self.register_models("google", GoogleBatchModel, GoogleInstantModel)
 
     def register_all_models(self):
         self.register_production_models()

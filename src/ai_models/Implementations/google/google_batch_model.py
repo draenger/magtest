@@ -1,12 +1,16 @@
+# google_batch_model.py
 from ...base_batch_model import BaseBatchModel
 from ...dto.batch_response import BatchResponse, BatchResponseItem
 from ...dto.usage import Usage
+import vertexai
 from vertexai.preview.batch_prediction import BatchPredictionJob
-from dotenv import load_dotenv
+from google.oauth2 import service_account
+from google.cloud import storage
 import os
 import json
-from typing import List, Optional
 import time
+from typing import List, Optional
+import ftfy
 
 
 class GoogleBatchModel(BaseBatchModel):
@@ -25,24 +29,67 @@ class GoogleBatchModel(BaseBatchModel):
             output_cost_per_million,
             batch_queue_limit,
         )
-        load_dotenv()
-        self.project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
-        self.bucket_name = os.environ.get("GOOGLE_CLOUD_BUCKET")
-        vertexai.init(project=self.project_id, location="us-central1")
+        # Get environment variables
+        self.project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        self.location = os.getenv("GOOGLE_CLOUD_LOCATION")
+        self.bucket = os.getenv("GOOGLE_CLOUD_BUCKET")
+        credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+        if not all(
+            [
+                self.project_id,
+                self.location,
+                self.bucket,
+                credentials_path,
+            ]
+        ):
+            raise ValueError("Missing required environment variables")
+
+        # Initialize credentials
+        try:
+            self.credentials = service_account.Credentials.from_service_account_file(
+                credentials_path,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+        except Exception as e:
+            raise Exception(f"Failed to initialize credentials: {str(e)}")
+
+        # Initialize Vertex AI
+        try:
+            vertexai.init(
+                project=self.project_id,
+                location=self.location,
+                credentials=self.credentials,
+            )
+        except Exception as e:
+            raise Exception(f"Failed to initialize Vertex AI: {str(e)}")
+
+        # Initialize storage client
+        try:
+            self.storage_client = storage.Client(credentials=self.credentials)
+        except Exception as e:
+            raise Exception(f"Failed to initialize storage client: {str(e)}")
 
     def add_batch_request(
         self, custom_id: str, messages: List[dict], max_tokens: int = 1
     ):
         request = {
-            "custom_id": custom_id,
-            "instances": [
-                {
-                    "messages": messages,
-                    "max_output_tokens": max_tokens,
-                }
-            ],
+            "request": {
+                "contents": self._convert_messages_to_prompt(messages),
+                "generationConfig": {"maxOutputTokens": max_tokens},
+                "labels": {"custom_id": f"google_{custom_id}"},
+            }
         }
-        self.requests.append(request)
+        self.requests.append((custom_id, request))
+
+    def _convert_messages_to_prompt(self, messages: List[dict]) -> List[dict]:
+        return [
+            {
+                "parts": [{"text": msg["content"]}],
+                "role": msg["role"],
+            }
+            for msg in messages
+        ]
 
     def run_batch(
         self,
@@ -50,107 +97,141 @@ class GoogleBatchModel(BaseBatchModel):
         metadata: Optional[dict] = None,
         test_session_id: int = None,
     ) -> str:
-        input_file_path = self._prepare_batch(benchmark_name, test_session_id)
-        output_uri = (
-            f"gs://{self.bucket_name}/{benchmark_name}/{test_session_id}/output"
-        )
+        print("Running batch job")
+        try:
+            salt = os.urandom(8).hex()
+            input_file_path = self._create_local_input_file(
+                benchmark_name, test_session_id, salt
+            )
+            input_uri = self._upload_to_cloud_storage(input_file_path, test_session_id)
+            output_uri = (
+                f"gs://{self.bucket}/outputs/{self.model_name}_batch_responses_{salt}"
+            )
 
-        # Submit a batch prediction job with Gemini model
-        batch_prediction_job = BatchPredictionJob.submit(
-            source_model="publishers/google/models/gemini-1.5-flash-002",
-            input_dataset=input_file_path,
-            output_uri_prefix=output_uri,
-        )
+            batch_prediction_job = BatchPredictionJob.submit(
+                source_model=self.model_name,
+                input_dataset=input_uri,
+                output_uri_prefix=output_uri,
+            )
+            print(f"Batch job submitted with ID: {batch_prediction_job.resource_name}")
+            return [batch_prediction_job.resource_name]
+        except Exception as e:
+            raise Exception(f"Failed to run batch job: {str(e)}")
 
-        # Check job status
-        print(f"Job resource name: {batch_prediction_job.resource_name}")
-        print(f"Model resource name with the job: {batch_prediction_job.model_name}")
-        print(f"Job state: {batch_prediction_job.state.name}")
+    def _create_local_input_file(
+        self, benchmark_name: str, test_session_id: int, salt: str
+    ) -> str:
+        input_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_requests_{salt}.jsonl"
+        try:
+            os.makedirs(os.path.dirname(input_file_path), exist_ok=True)
+            with open(input_file_path, "w") as f:
+                for _, request in self.requests:
+                    f.write(json.dumps(request) + "\n")
+            return input_file_path
+        except Exception as e:
+            raise Exception(f"Failed to create input file: {str(e)}")
 
-        # Refresh the job until complete
-        while not batch_prediction_job.has_ended:
-            time.sleep(5)
-            batch_prediction_job.refresh()
+    def _upload_to_cloud_storage(
+        self, input_file_path: str, test_session_id: int
+    ) -> str:
+        try:
+            file_name = input_file_path.split("/")[-1]
+            cloud_path = f"inputs/{file_name}"
+            input_uri = f"gs://{self.bucket}/{cloud_path}"
 
-        # Check if the job succeeds
-        if batch_prediction_job.has_succeeded:
-            print("Job succeeded!")
-        else:
-            print(f"Job failed: {batch_prediction_job.error}")
+            bucket = self.storage_client.bucket(self.bucket)
+            blob = bucket.blob(cloud_path)
+            blob.upload_from_filename(input_file_path)
 
-        # Check the location of the output
-        print(f"Job output location: {batch_prediction_job.output_location}")
-
-        return batch_prediction_job.resource_name
+            return input_uri
+        except Exception as e:
+            raise Exception(f"Failed to upload to cloud storage: {str(e)}")
 
     def check_batch_results(
         self, benchmark_name: str, batch_id: str, test_session_id: int
     ) -> Optional[BatchResponse]:
-        job = BatchPredictionJob.get(batch_id)
+        try:
+            # Używamy pełnego resource name do pobrania zadania
+            job = BatchPredictionJob(batch_id)
 
-        if job.state == BatchPredictionJob.State.JOB_STATE_SUCCEEDED:
-            output_file_path = self._download_results(
-                job.output_info.gcs_output_directory, benchmark_name, test_session_id
-            )
-            return self.process_batch_results(output_file_path)
+            if not job.has_ended:
+                return None
 
-        return None
+            if job.has_succeeded:
+                results = self._read_results_from_storage(job.output_location)
+                return self._process_results(results)
+            else:
+                raise Exception(f"Batch job failed: {job.error}")
+        except Exception as e:
+            raise Exception(f"Failed to check batch results: {str(e)}")
 
-    def cancel_batch(self, batch_id: str):
-        job = BatchPredictionJob.get(batch_id)
-        return job.cancel()
+    def _read_results_from_storage(self, output_location: str) -> List[dict]:
+        try:
+            results = []
+            bucket_name = self.bucket
+            prefix = "/".join(output_location.replace("gs://", "").split("/")[1:])
 
-    def list_batches(self, limit: int = 10):
-        return list(BatchPredictionJob.list(limit=limit))
+            bucket = self.storage_client.bucket(bucket_name)
+            blobs = bucket.list_blobs(prefix=prefix)
 
-    def process_batch_results(self, output_file_path: str) -> BatchResponse:
-        results = []
-        with open(output_file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                data = json.loads(line)
-                custom_id = data.get("custom_id")
-                response_data = data.get("predictions", [{}])[0]
+            for blob in blobs:
+                if blob.name.endswith(".jsonl"):
+                    content = blob.download_as_text(encoding="utf-8")
+                    current_object = ""
+                    chunk_prefix = '{"status":'
+                    # Split content into chunks starting with prefix
+                    chunks = content.split(chunk_prefix)
+                    chunks = [chunk for chunk in chunks if chunk.strip()]
+                    for chunk in chunks:
+                        try:
+                            # Reconstruct the object by adding the prefix back
+                            current_object = chunk_prefix + chunk
+                            json_obj = json.loads(current_object)
+                            results.append(json_obj)
 
-                if "error" not in response_data:
-                    response = response_data.get("content", "")
-                    usage = Usage(
-                        response_data.get("input_token_count", 0),
-                        response_data.get("output_token_count", 0),
-                    )
-                    status = "success"
-                else:
-                    response = None
-                    usage = None
-                    status = "failed"
+                        except json.JSONDecodeError as e:
+                            print(f"Failed to parse JSON object: {e}")
+                            print(f"Problematic chunk start: {current_object[:100]}...")
+                            continue
+            return results
+        except Exception as e:
+            print(f"Error reading from storage: {str(e)}")
+            raise Exception(f"Failed to read results from storage: {str(e)}")
 
-                results.append(
-                    BatchResponseItem(
-                        custom_id=custom_id,
-                        response=response,
-                        usage=usage,
-                        status=status,
-                    )
+    def _process_results(self, results) -> BatchResponse:
+        try:
+            processed_results = []
+            for result in results:
+                # Pobierz custom_id z labels w request
+                custom_id = (
+                    result.get("request", {})
+                    .get("labels", {})
+                    .get("custom_id")
+                    .split("_")[1]
                 )
 
-        return BatchResponse(results)
+                # Pobierz odpowiedź z pierwszego kandydata
+                response_content = (
+                    result.get("response", {})
+                    .get("candidates", [{}])[0]
+                    .get("content", {})
+                    .get("parts", [{}])[0]
+                    .get("text", "")
+                )
 
-    def _prepare_batch(self, benchmark_name, test_session_id):
-        input_file_path = (
-            f"gs://{self.bucket_name}/{benchmark_name}/{test_session_id}/input.jsonl"
-        )
-        with open(input_file_path, "w") as f:
-            for request in self.requests:
-                f.write(json.dumps(request) + "\n")
-        return input_file_path
+                # Pobierz informacje o użyciu tokenów
+                usage_metadata = result.get("response", {}).get("usageMetadata", {})
 
-    def _download_results(self, gcs_output_directory, benchmark_name, test_session_id):
-        output_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_results.jsonl"
-        if os.path.exists(output_file_path):
-            return output_file_path
-
-        # Implement GCS download logic here
-        # For simplicity, assuming the file is already downloaded
-        return output_file_path
-
-    def estimate_tokens_amount(self, messages: List[dict]) -> int:
-        return super().estimate_tokens_amount(messages)
+                response_item = BatchResponseItem(
+                    custom_id=custom_id,
+                    response=response_content.strip(),
+                    usage=Usage(
+                        prompt_tokens=usage_metadata.get("promptTokenCount", 0),
+                        completion_tokens=usage_metadata.get("candidatesTokenCount", 0),
+                    ),
+                    status="success" if response_content else "failed",
+                )
+                processed_results.append(response_item)
+            return BatchResponse(processed_results)
+        except Exception as e:
+            raise Exception(f"Failed to process results: {str(e)}")
