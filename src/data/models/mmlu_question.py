@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String
 from .base import Base
 
 
-class MMULQuestion(Base):
-    __tablename__ = "mmul_questions"
+class MMLUQuestion(Base):
+    __tablename__ = "mmlu_questions"
 
     id = Column(Integer, primary_key=True)
     question = Column(String, nullable=False)
@@ -18,4 +18,4 @@ class MMULQuestion(Base):
     data_type = Column(String, nullable=False)
 
     def __repr__(self):
-        return f"<MMULQuestion(id={self.id}, question='{self.question[:20]}...', data_type='{self.data_type}')>"
+        return f"<MMLUQuestion(id={self.id}, question='{self.question[:20]}...', data_type='{self.data_type}')>"

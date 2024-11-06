@@ -1,4 +1,4 @@
-from .implementations.mmul import MMULBenchmark, MMULDataProvider, MMULTestPreparation
+from .implementations.mmul import MMLUBenchmark, MMLUDataProvider, MMLUTestPreparation
 from .benchmark_factory import BenchmarkFactory
 
 
@@ -21,8 +21,8 @@ class BenchmarkRegistry:
         self.benchmark_factory = BenchmarkFactory()
 
     def register_mmul_benchmarks(self):
-        mmul_data_provider = MMULDataProvider(self.mmul_question_repository)
-        mmul_test_preparation = MMULTestPreparation(
+        mmul_data_provider = MMLUDataProvider(self.mmul_question_repository)
+        mmul_test_preparation = MMLUTestPreparation(
             mmul_data_provider,
             self.prepared_question_repo,
             self.model_result_repo,
@@ -30,8 +30,8 @@ class BenchmarkRegistry:
         )
 
         self.benchmark_factory.register_benchmark(
-            "MMUL-0Shot",
-            MMULBenchmark,
+            "MMLU-0Shot",
+            MMLUBenchmark,
             test_session_id=self.test_session_id,
             prepared_question_repo=self.prepared_question_repo,
             model_result_repo=self.model_result_repo,
@@ -42,8 +42,8 @@ class BenchmarkRegistry:
         )
 
         self.benchmark_factory.register_benchmark(
-            "MMUL-5Shot",
-            MMULBenchmark,
+            "MMLU-5Shot",
+            MMLUBenchmark,
             test_session_id=self.test_session_id,
             prepared_question_repo=self.prepared_question_repo,
             model_result_repo=self.model_result_repo,

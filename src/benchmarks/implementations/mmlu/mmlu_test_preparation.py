@@ -1,7 +1,7 @@
 import uuid
 
 
-class MMULTestPreparation:
+class MMLUTestPreparation:
     def __init__(
         self, data_provider, prepared_question_repo, model_result_repo, test_session_id
     ):

@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-class MMULDBDataLoader:
+class MMLUDBDataLoader:
     def __init__(self, repository):
         self.repository = repository
 

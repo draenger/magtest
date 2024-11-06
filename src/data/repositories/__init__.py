@@ -1,4 +1,4 @@
 from .model_result_repository import ModelResultRepository
-from .mmul_question_repository import MMULQuestionRepository
+from .mmlu_question_repository import MMLUQuestionRepository
 from .prepared_question_repository import PreparedQuestionRepository
 from .batch_job_repository import BatchJobRepository

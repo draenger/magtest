@@ -1,4 +1,4 @@
-class MMULDataFilterer:
+class MMLUDataFilterer:
     @staticmethod
     def filter_data(data, max_tests_per_benchmark, data_set):
         if max_tests_per_benchmark > 0:

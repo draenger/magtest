@@ -1,1 +1,1 @@
-from .mmul import MMULBenchmark
+from .mmlu import MMLUBenchmark

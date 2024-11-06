@@ -2,7 +2,7 @@ from time import perf_counter
 from ai_models.interfaces import InstantModelInterface
 
 
-class MMULOneByOneRunner:
+class MMLUOneByOneRunner:
     def __init__(self, model_result_repo):
         self.model_result_repo = model_result_repo
 

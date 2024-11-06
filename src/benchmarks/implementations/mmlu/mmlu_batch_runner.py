@@ -2,7 +2,7 @@ from ai_models.dto import BatchResponse
 from ai_models.interfaces import BatchModelInterface
 
 
-class MMULBatchRunner:
+class MMLUBatchRunner:
     def __init__(self, model_result_repo, batch_job_repo):
         self.model_result_repo = model_result_repo
         self.batch_job_repo = batch_job_repo

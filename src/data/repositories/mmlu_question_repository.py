@@ -1,11 +1,11 @@
 from .repository import Repository
-from data.models import MMULQuestion
+from data.models import MMLUQuestion
 
 
-class MMULQuestionRepository(Repository):
+class MMLUQuestionRepository(Repository):
     def __init__(self, database):
         super().__init__(database)
-        self.model = MMULQuestion
+        self.model = MMLUQuestion
 
     def add(
         self,
@@ -20,7 +20,7 @@ class MMULQuestionRepository(Repository):
         group,
         data_type,
     ):
-        entity = MMULQuestion(
+        entity = MMLUQuestion(
             question=question,
             option_a=option_a,
             option_b=option_b,
@@ -36,7 +36,7 @@ class MMULQuestionRepository(Repository):
             super().add(entity)
             return entity
         except Exception as e:
-            print(f"Error adding MMULQuestion: {e}")
+            print(f"Error adding MMLUQuestion: {e}")
             return None
 
     def get_by_category(self, category):

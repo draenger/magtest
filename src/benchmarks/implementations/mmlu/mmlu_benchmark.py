@@ -1,11 +1,11 @@
 from abc import ABC
 from ...interfaces.benchmark_interface import BenchmarkInterface
-from .mmul_one_by_one_runner import MMULOneByOneRunner
-from .mmul_batch_runner import MMULBatchRunner
+from .mmlu_one_by_one_runner import MMLUOneByOneRunner
+from .mmlu_batch_runner import MMLUBatchRunner
 from ai_models.interfaces.model_client_interface import ModelClientInterface
 
 
-class MMULBenchmark(BenchmarkInterface, ABC):
+class MMLUBenchmark(BenchmarkInterface, ABC):
 
     def __init__(
         self,
@@ -21,7 +21,7 @@ class MMULBenchmark(BenchmarkInterface, ABC):
         self.prepared_question_repo = prepared_question_repo
         self.model_result_repo = model_result_repo
         self.batch_job_repo = batch_job_repo
-        self.benchmark_name = f"MMUL-{num_few_shot}Shot"
+        self.benchmark_name = f"MMLU-{num_few_shot}Shot"
 
         self.test_preparation = test_preparation
         self.max_tests_per_benchmark = max_tests_per_benchmark
@@ -30,8 +30,8 @@ class MMULBenchmark(BenchmarkInterface, ABC):
         self.test_preparation.prepare_test_data(
             self.benchmark_name, self.max_tests_per_benchmark, self.num_few_shot
         )
-        self.one_by_one_runner = MMULOneByOneRunner(model_result_repo)
-        self.batch_runner = MMULBatchRunner(model_result_repo, batch_job_repo)
+        self.one_by_one_runner = MMLUOneByOneRunner(model_result_repo)
+        self.batch_runner = MMLUBatchRunner(model_result_repo, batch_job_repo)
 
     def estimate_model_results(self, model: ModelClientInterface):
         self.test_preparation.estimate_model_results(

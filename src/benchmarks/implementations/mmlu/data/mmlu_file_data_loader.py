@@ -1,9 +1,9 @@
 import os
 import pandas as pd
-from .mmul_categories import categories, subcategories
+from .mmlu_categories import categories, subcategories
 
 
-class MMULFileDataLoader:
+class MMLUFileDataLoader:
     def process_files(self, directory, file_suffix, max_tests_per_benchmark):
         all_data = []
         files_with_less_records = []

@@ -1,12 +1,12 @@
 import os
 import pandas as pd
 from ....util import DataDownloader
-from .mmul_file_data_loader import MMULFileDataLoader
-from .mmul_db_data_loader import MMULDBDataLoader
-from .mmul_data_filterer import MMULDataFilterer
+from .mmlu_file_data_loader import MMLUFileDataLoader
+from .mmul_db_data_loader import MMLUDBDataLoader
+from .mmlu_data_filterer import MMLUDataFilterer
 
 
-class MMULDataProvider:
+class MMLUDataProvider:
     def __init__(
         self,
         mmul_question_repository,
@@ -16,9 +16,9 @@ class MMULDataProvider:
         self.unpacked_file_dir = None
         self.sub_dir = None
         self.downloader = DataDownloader(url, save_dir)
-        self.file_data_provider = MMULFileDataLoader()
-        self.db_data_loader = MMULDBDataLoader(mmul_question_repository)
-        self.data_filterer = MMULDataFilterer()
+        self.file_data_provider = MMLUFileDataLoader()
+        self.db_data_loader = MMLUDBDataLoader(mmul_question_repository)
+        self.data_filterer = MMLUDataFilterer()
 
     def process_data(self, max_tests_per_benchmark):
         test_data = self.__load_data__(max_tests_per_benchmark, data_set="test")
