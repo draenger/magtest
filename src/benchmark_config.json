@@ -4,5 +4,8 @@
   },
   "gsm8k": {
     "variants": [{ "shots": 0 }, { "shots": 4 }]
+  },
+  "bbh": {
+    "variants": [{ "shots": 0 }, { "shots": 3 }]
   }
 }

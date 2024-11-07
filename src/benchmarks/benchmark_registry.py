@@ -5,6 +5,11 @@ from .implementations.gsm8k import (
     GSM8KDataProvider,
     GSM8KTestPreparation,
 )
+from .implementations.bbh import (
+    BBHBenchmark,
+    BBHDataProvider,
+    BBHTestPreparation,
+)
 from .benchmark_factory import BenchmarkFactory
 
 
@@ -13,6 +18,7 @@ class BenchmarkRegistry:
         self,
         mmul_question_repository,
         gsm8k_question_repository,
+        bbh_question_repository,
         prepared_question_repo,
         model_result_repo,
         batch_job_repo,
@@ -22,6 +28,7 @@ class BenchmarkRegistry:
     ):
         self.mmul_question_repository = mmul_question_repository
         self.gsm8k_question_repository = gsm8k_question_repository
+        self.bbh_question_repository = bbh_question_repository
         self.prepared_question_repo = prepared_question_repo
         self.model_result_repo = model_result_repo
         self.batch_job_repo = batch_job_repo
@@ -40,6 +47,7 @@ class BenchmarkRegistry:
         config = self.load_config()
         self._register_mmlu_benchmarks(config.get("mmlu", {}))
         self._register_gsm8k_benchmarks(config.get("gsm8k", {}))
+        self._register_bbh_benchmarks(config.get("bbh", {}))
 
     def get_factory(self):
         return self.benchmark_factory
@@ -68,6 +76,18 @@ class BenchmarkRegistry:
                 num_few_shot=variant["shots"],
             )
 
+    def _register_bbh_benchmarks(self, config):
+        """Register BBH benchmark variants based on configuration"""
+        bbh_test_preparation = self._create_bbh_test_preparation()
+
+        for variant in config.get("variants", [{"shots": 0}, {"shots": 3}]):
+            self._register_benchmark(
+                f"BBH-{variant['shots']}Shot",
+                BBHBenchmark,
+                bbh_test_preparation,
+                num_few_shot=variant["shots"],
+            )
+
     def _create_mmlu_test_preparation(self):
         """Create MMLU test preparation object"""
         mmlu_data_provider = MMLUDataProvider(self.mmul_question_repository)
@@ -83,6 +103,16 @@ class BenchmarkRegistry:
         gsm8k_data_provider = GSM8KDataProvider(self.gsm8k_question_repository)
         return GSM8KTestPreparation(
             gsm8k_data_provider,
+            self.prepared_question_repo,
+            self.model_result_repo,
+            self.test_session_id,
+        )
+
+    def _create_bbh_test_preparation(self):
+        """Create BBH test preparation object"""
+        bbh_data_provider = BBHDataProvider(self.bbh_question_repository)
+        return BBHTestPreparation(
+            bbh_data_provider,
             self.prepared_question_repo,
             self.model_result_repo,
             self.test_session_id,
