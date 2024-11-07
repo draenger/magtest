@@ -47,7 +47,7 @@ class AnthropicBatchModel(BaseBatchModel):
         test_session_id: int = None,
     ) -> str:
         message_batch = self.client.beta.messages.batches.create(requests=self.requests)
-        return message_batch.id
+        return [message_batch.id]
 
     def check_batch_results(
         self, benchmark_name: str, batch_id: str, test_session_id: int

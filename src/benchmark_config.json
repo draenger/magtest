@@ -1,0 +1,8 @@
+{
+  "mmlu": {
+    "variants": [{ "shots": 0 }, { "shots": 5 }]
+  },
+  "gsm8k": {
+    "variants": [{ "shots": 0 }, { "shots": 4 }]
+  }
+}
