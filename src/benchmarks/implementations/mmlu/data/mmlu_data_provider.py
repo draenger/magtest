@@ -28,11 +28,12 @@ class MMLUDataProvider:
         return {"test": test_data, "dev": dev_data}
 
     def __load_data__(self, max_tests_per_benchmark=0, data_set="test"):
-        data_from_db = self.db_data_loader.load_data(data_set)
-        if not data_from_db.empty:
-            return self.data_filterer.filter_data(
-                data_from_db, max_tests_per_benchmark, data_set
-            )
+        # TODO: rework this system to load all data at first and then filter to smaller sizes, below implementation would load only one shape of data
+        # data_from_db = self.db_data_loader.load_data(data_set)
+        # if not data_from_db.empty:
+        #     return self.data_filterer.filter_data(
+        #         data_from_db, max_tests_per_benchmark, data_set
+        #     )
 
         self.__ensure_data_directory__(data_set)
         file_suffix = f"_{data_set}.csv"
@@ -49,7 +50,9 @@ class MMLUDataProvider:
         filtered_data = self.data_filterer.filter_data(
             combined_data, max_tests_per_benchmark, data_set
         )
-        self.db_data_loader.save_data(filtered_data, data_set)
+
+        # TODO: rework this system to save all data at first and then filter to smaller sizes, below implementation would save only one shape of data
+        # self.db_data_loader.save_data(filtered_data, data_set)
         return filtered_data
 
     def __ensure_data_directory__(self, data_set):

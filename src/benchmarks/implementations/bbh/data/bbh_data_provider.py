@@ -29,6 +29,12 @@ class BBHDataProvider:
         return data
 
     def _load_data(self, data_type="test", max_tests_per_benchmark=0):
+        # TODO: rework this system to load all data at first and then filter to smaller sizes, below implementation would load only one shape of data
+        # data_from_db = self.db_data_loader.load_data(data_type)
+        # if not data_from_db.empty:
+        #     return self.__filter_data__(
+        #         data_from_db, max_tests_per_benchmark, data_type
+        #     )
 
         # Load from files if not in DB
         data_dir = self.downloader.process()
@@ -62,8 +68,8 @@ class BBHDataProvider:
         combined_data = pd.concat(all_data, ignore_index=True)
         filtered_data = self._filter_data(combined_data, max_tests_per_benchmark)
 
-        # Save to DB
-        self.db_data_loader.save_data(filtered_data, data_type)
+        # TODO: rework this system to save all data at first and then filter to smaller sizes, below implementation would save only one shape of data
+        # self.db_data_loader.save_data(filtered_data, data_type)
 
         return filtered_data
 
