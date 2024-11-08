@@ -14,6 +14,7 @@ class MMLUBatchRunner:
         model: BatchModelInterface,
         test_session_id,
         benchmark_name,
+        max_tokens: int,
     ):
         model_name = model.get_model_name()
 
@@ -43,7 +44,7 @@ class MMLUBatchRunner:
             model.add_batch_request(
                 custom_id=str(model_result.id),
                 messages=[{"role": "user", "content": prepared_question.query}],
-                max_tokens=1,
+                max_tokens=max_tokens,
             )
 
         batch_ids = model.run_batch(

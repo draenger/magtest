@@ -14,10 +14,10 @@ class GSM8KBatchRunner:
         model: BatchModelInterface,
         test_session_id,
         benchmark_name,
+        max_tokens: int,
     ):
         model_name = model.get_model_name()
 
-        # Sprawdź, czy benchmark już istnieje
         existing_batches = (
             self.batch_job_repo.get_by_test_session_and_benchmark_and_model(
                 test_session_id, benchmark_name, model_name
@@ -43,7 +43,7 @@ class GSM8KBatchRunner:
             model.add_batch_request(
                 custom_id=str(model_result.id),
                 messages=[{"role": "user", "content": prepared_question.query}],
-                max_tokens=500,  # GSM8K wymaga dłuższych odpowiedzi
+                max_tokens=max_tokens,
             )
 
         batch_ids = model.run_batch(

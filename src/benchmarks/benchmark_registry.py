@@ -56,12 +56,14 @@ class BenchmarkRegistry:
         """Register MMLU benchmark variants based on configuration"""
         mmlu_test_preparation = self._create_mmlu_test_preparation()
 
-        for variant in config.get("variants", [{"shots": 0}, {"shots": 5}]):
+        for variant in config.get("variants", []):
             self._register_benchmark(
                 f"MMLU-{variant['shots']}Shot",
                 MMLUBenchmark,
                 mmlu_test_preparation,
                 num_few_shot=variant["shots"],
+                max_tokens=variant.get("max_tokens", 1),
+                max_tests_per_category=variant.get("max_tests_per_category", 20),
             )
 
     def _register_gsm8k_benchmarks(self, config):
@@ -119,7 +121,13 @@ class BenchmarkRegistry:
         )
 
     def _register_benchmark(
-        self, name: str, benchmark_class, test_preparation, num_few_shot: int
+        self,
+        name: str,
+        benchmark_class,
+        test_preparation,
+        num_few_shot: int,
+        max_tokens: int,
+        max_tests_per_category: int,
     ):
         """Register a single benchmark with specified parameters"""
         self.benchmark_factory.register_benchmark(
@@ -130,8 +138,9 @@ class BenchmarkRegistry:
             model_result_repo=self.model_result_repo,
             batch_job_repo=self.batch_job_repo,
             test_preparation=test_preparation,
-            max_tests_per_benchmark=self.max_tests_per_benchmark,
+            max_tests_per_category=max_tests_per_category,
             num_few_shot=num_few_shot,
+            max_tokens=max_tokens,
         )
 
     def print_loaded_benchmarks(self):

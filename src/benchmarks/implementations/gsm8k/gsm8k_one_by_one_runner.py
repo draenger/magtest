@@ -7,7 +7,11 @@ class GSM8KOneByOneRunner:
         self.model_result_repo = model_result_repo
 
     def run_benchmark_one_by_one(
-        self, prepared_questions, model_results, model: InstantModelInterface
+        self,
+        prepared_questions,
+        model_results,
+        model: InstantModelInterface,
+        max_tokens: int,
     ):
         for model_result in model_results:
             prepared_question = prepared_questions.get(
@@ -21,7 +25,9 @@ class GSM8KOneByOneRunner:
                 continue
 
             start_time = perf_counter()
-            instant_response = model.predict(prepared_question.query)
+            instant_response = model.predict(
+                prepared_question.query, max_tokens=max_tokens
+            )
             end_time = perf_counter()
 
             # Wyciągnij liczbę z odpowiedzi modelu

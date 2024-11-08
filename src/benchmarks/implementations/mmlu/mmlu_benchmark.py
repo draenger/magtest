@@ -5,7 +5,7 @@ from .mmlu_batch_runner import MMLUBatchRunner
 from ai_models.interfaces.model_client_interface import ModelClientInterface
 
 
-class MMLUBenchmark(BenchmarkInterface, ABC):
+class MMLUBenchmark(BenchmarkInterface):
 
     def __init__(
         self,
@@ -14,8 +14,9 @@ class MMLUBenchmark(BenchmarkInterface, ABC):
         model_result_repo,
         batch_job_repo,
         test_preparation,
-        max_tests_per_benchmark,
+        max_tests_per_category,
         num_few_shot,
+        max_tokens,
     ):
         self.test_session_id = test_session_id
         self.prepared_question_repo = prepared_question_repo
@@ -23,15 +24,21 @@ class MMLUBenchmark(BenchmarkInterface, ABC):
         self.batch_job_repo = batch_job_repo
         self.benchmark_name = f"MMLU-{num_few_shot}Shot"
 
-        self.test_preparation = test_preparation
-        self.max_tests_per_benchmark = max_tests_per_benchmark
+        self._max_tokens = max_tokens
+        self._max_tests_per_category = max_tests_per_category
         self.num_few_shot = num_few_shot
 
+        self.test_preparation = test_preparation
         self.test_preparation.prepare_test_data(
-            self.benchmark_name, self.max_tests_per_benchmark, self.num_few_shot
+            self.benchmark_name,
+            self._max_tests_per_category,
+            self.num_few_shot,
+            self._max_tokens,
         )
+
         self.one_by_one_runner = MMLUOneByOneRunner(model_result_repo)
         self.batch_runner = MMLUBatchRunner(model_result_repo, batch_job_repo)
+
 
     def estimate_model_results(self, model: ModelClientInterface):
         self.test_preparation.estimate_model_results(
@@ -50,10 +57,14 @@ class MMLUBenchmark(BenchmarkInterface, ABC):
                 model.get_batch_model(),
                 self.test_session_id,
                 self.benchmark_name,
+                self.max_tokens,
             )
         else:
             self.one_by_one_runner.run_benchmark_one_by_one(
-                prepared_questions, model_results, model.get_instant_model()
+                prepared_questions,
+                model_results,
+                model.get_instant_model(),
+                self.max_tokens,
             )
 
     def check_and_process_batch_results(

@@ -10,7 +10,9 @@ class MMLUTestPreparation:
         self.model_result_repo = model_result_repo
         self.test_session_id = test_session_id
 
-    def prepare_test_data(self, benchmark_name, max_tests_per_benchmark, num_few_shot):
+    def prepare_test_data(
+        self, benchmark_name, max_tests_per_category, num_few_shot, max_tokens
+    ):
         existing_data = self.prepared_question_repo.get_by_test_session_and_benchmark(
             self.test_session_id, benchmark_name
         )
@@ -21,7 +23,7 @@ class MMLUTestPreparation:
             )
             return
 
-        data = self.data_provider.process_data(max_tests_per_benchmark)
+        data = self.data_provider.process_data(max_tests_per_category)
         total_questions = len(data["test"])
 
         print(
@@ -73,7 +75,7 @@ class MMLUTestPreparation:
 
         return few_shot_prompt + "\n"
 
-    def estimate_model_results(self, benchmark_name, model):
+    def estimate_model_results(self, benchmark_name, model, max_tokens):
         existing_results = (
             self.model_result_repo.get_results_for_session_benchmark_and_model(
                 self.test_session_id, benchmark_name, model.get_model_name()
@@ -94,13 +96,11 @@ class MMLUTestPreparation:
 
         for prepared_question in prepared_questions:
             estimated_in_tokens = model.estimate_tokens_amount(prepared_question.query)
-            estimated_out_tokens = 1
             self.model_result_repo.add(
                 prepared_question_id=prepared_question.id,
                 model_name=model.get_model_name(),
                 estimated_in_tokens=estimated_in_tokens,
-                estimated_out_tokens=estimated_out_tokens,
+                estimated_out_tokens=max_tokens,
                 estimated_in_cost=estimated_in_tokens * model.get_model_in_token_cost(),
-                estimated_out_cost=estimated_out_tokens
-                * model.get_model_out_token_cost(),
+                estimated_out_cost=max_tokens * model.get_model_out_token_cost(),
             )

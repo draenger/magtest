@@ -1,11 +1,44 @@
 {
   "mmlu": {
-    "variants": [{ "shots": 0 }, { "shots": 5 }]
+    "variants": [
+      {
+        "shots": 0,
+        "max_tokens": 1,
+        "max_tests_per_category": 20
+      },
+      {
+        "shots": 5,
+        "max_tokens": 1,
+        "max_tests_per_category": 20
+      }
+    ]
   },
   "gsm8k": {
-    "variants": [{ "shots": 0 }, { "shots": 4 }]
+    "variants": [
+      {
+        "shots": 0,
+        "max_tokens": 500,
+        "max_tests_per_category": 50
+      },
+      {
+        "shots": 4,
+        "max_tokens": 500,
+        "max_tests_per_category": 50
+      }
+    ]
   },
   "bbh": {
-    "variants": [{ "shots": 0 }, { "shots": 3 }]
+    "variants": [
+      {
+        "shots": 0,
+        "max_tokens": 1000,
+        "max_tests_per_category": 30
+      },
+      {
+        "shots": 3,
+        "max_tokens": 1000,
+        "max_tests_per_category": 30
+      }
+    ]
   }
 }

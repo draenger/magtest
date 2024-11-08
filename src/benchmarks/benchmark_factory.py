@@ -16,8 +16,9 @@ class BenchmarkFactory:
         model_result_repo,
         batch_job_repo,
         test_preparation,
-        max_tests_per_benchmark,
+        max_tests_per_category,
         num_few_shot,
+        max_tokens,
     ):
         if not self.benchmark_name_list or name.lower() in [
             x.lower() for x in self.benchmark_name_list
@@ -29,8 +30,9 @@ class BenchmarkFactory:
                 model_result_repo,
                 batch_job_repo,
                 test_preparation,
-                max_tests_per_benchmark,
+                max_tests_per_category,
                 num_few_shot,
+                max_tokens,
             )
         else:
             print(f"Skipping benchmark {name} as it's not in the benchmark_name_list")
@@ -46,8 +48,9 @@ class BenchmarkFactory:
             model_result_repo,
             batch_job_repo,
             test_preparation,
-            max_tests_per_benchmark,
+            max_tests_per_category,
             num_few_shot,
+            max_tokens,
         ) = benchmark_info
         return benchmark_class(
             test_session_id,
@@ -55,8 +58,9 @@ class BenchmarkFactory:
             model_result_repo,
             batch_job_repo,
             test_preparation,
-            max_tests_per_benchmark,
+            max_tests_per_category,
             num_few_shot,
+            max_tokens,
         )
 
     def get_registered_benchmarks(self):

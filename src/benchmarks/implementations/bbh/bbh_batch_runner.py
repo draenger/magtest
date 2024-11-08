@@ -14,10 +14,10 @@ class BBHBatchRunner:
         model: BatchModelInterface,
         test_session_id,
         benchmark_name,
+        max_tokens: int,
     ):
         model_name = model.get_model_name()
 
-        # Check if benchmark already exists
         existing_batches = (
             self.batch_job_repo.get_by_test_session_and_benchmark_and_model(
                 test_session_id, benchmark_name, model_name
@@ -43,7 +43,7 @@ class BBHBatchRunner:
             model.add_batch_request(
                 custom_id=str(model_result.id),
                 messages=[{"role": "user", "content": prepared_question.query}],
-                max_tokens=1000,  # BBH requires longer responses
+                max_tokens=max_tokens,
             )
 
         batch_ids = model.run_batch(

@@ -64,6 +64,26 @@
         "batch_queue_limit": null
       },
       {
+        "model_name": "claude-3-5-sonnet-20241022",
+        "input_cost_per_million": 3,
+        "output_cost_per_million": 15,
+        "rpm_limit": 50,
+        "rpd_limit": null,
+        "tpm_limit": 40000,
+        "tpd_limit": 1000000,
+        "batch_queue_limit": null
+      },
+      {
+        "model_name": "claude-3-5-haiku-20241022",
+        "input_cost_per_million": 1,
+        "output_cost_per_million": 5,
+        "rpm_limit": 50,
+        "rpd_limit": null,
+        "tpm_limit": 20000,
+        "tpd_limit": 1000000,
+        "batch_queue_limit": null
+      },
+      {
         "model_name": "claude-3-opus-20240229",
         "input_cost_per_million": 15,
         "output_cost_per_million": 75,
