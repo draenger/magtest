@@ -23,7 +23,6 @@ class BenchmarkRegistry:
         model_result_repo,
         batch_job_repo,
         test_session_id,
-        max_tests_per_benchmark,
         benchmark_name_list=None,
     ):
         self.mmul_question_repository = mmul_question_repository
@@ -33,7 +32,6 @@ class BenchmarkRegistry:
         self.model_result_repo = model_result_repo
         self.batch_job_repo = batch_job_repo
         self.test_session_id = test_session_id
-        self.max_tests_per_benchmark = max_tests_per_benchmark
         self.config_file = "benchmark_config.json"
         self.benchmark_factory = BenchmarkFactory(benchmark_name_list)
 
@@ -70,24 +68,28 @@ class BenchmarkRegistry:
         """Register GSM8K benchmark variants based on configuration"""
         gsm8k_test_preparation = self._create_gsm8k_test_preparation()
 
-        for variant in config.get("variants", [{"shots": 0}, {"shots": 4}]):
+        for variant in config.get("variants", []):
             self._register_benchmark(
                 f"GSM8K-{variant['shots']}Shot",
                 GSM8KBenchmark,
                 gsm8k_test_preparation,
                 num_few_shot=variant["shots"],
+                max_tokens=variant.get("max_tokens", 500),
+                max_tests_per_category=variant.get("max_tests_per_category", 50),
             )
 
     def _register_bbh_benchmarks(self, config):
         """Register BBH benchmark variants based on configuration"""
         bbh_test_preparation = self._create_bbh_test_preparation()
 
-        for variant in config.get("variants", [{"shots": 0}, {"shots": 3}]):
+        for variant in config.get("variants", []):
             self._register_benchmark(
                 f"BBH-{variant['shots']}Shot",
                 BBHBenchmark,
                 bbh_test_preparation,
                 num_few_shot=variant["shots"],
+                max_tokens=variant.get("max_tokens", 1000),
+                max_tests_per_category=variant.get("max_tests_per_category", 30),
             )
 
     def _create_mmlu_test_preparation(self):

@@ -32,7 +32,7 @@ class GSM8KOneByOneRunner:
 
             # Wyciągnij liczbę z odpowiedzi modelu
             model_answer = self._extract_number(instant_response.prediction)
-            correct_answer = float(prepared_question.correct_answer)
+            correct_answer = float(prepared_question.correct_answer.replace(",", "."))
 
             self.model_result_repo.update_execution_results(
                 model_result.id,
@@ -53,13 +53,22 @@ class GSM8KOneByOneRunner:
             # Szukaj ostatniej linii zawierającej ####
             if "####" in response:
                 final_answer = response.split("####")[-1].strip()
+                if "," in final_answer:
+                    # Replace comma with dot only if it's between digits
+                    parts = final_answer.split(",")
+                    for i in range(len(parts) - 1):
+                        if parts[i][-1:].isdigit() and parts[i + 1][:1].isdigit():
+                            parts[i] = parts[i] + "."
+                        else:
+                            parts[i] = parts[i] + ","
+                    final_answer = "".join(parts)
                 # Konwertuj na float, usuwając wszystko poza liczbami i kropką
                 return float(
                     "".join(c for c in final_answer if c.isdigit() or c == ".")
                 )
             return float("".join(c for c in response if c.isdigit() or c == "."))
         except (ValueError, IndexError):
-            print(f"Could not extract number from response: {response}")
+            # print(f"Could not extract number from response: {response}")
             return float(
                 "inf"
             )  # Zwróć wartość, która na pewno nie będzie równa poprawnej odpowiedzi

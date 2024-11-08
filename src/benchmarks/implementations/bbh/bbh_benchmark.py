@@ -1,11 +1,10 @@
-from abc import ABC
 from ...interfaces.benchmark_interface import BenchmarkInterface
 from .bbh_one_by_one_runner import BBHOneByOneRunner
 from .bbh_batch_runner import BBHBatchRunner
 from ai_models.interfaces.model_client_interface import ModelClientInterface
 
 
-class BBHBenchmark(BenchmarkInterface, ABC):
+class BBHBenchmark(BenchmarkInterface):
     def __init__(
         self,
         test_session_id,
@@ -23,16 +22,16 @@ class BBHBenchmark(BenchmarkInterface, ABC):
         self.batch_job_repo = batch_job_repo
         self.benchmark_name = f"BBH-{num_few_shot}Shot"
 
-        self._max_tokens = max_tokens
-        self._max_tests_per_category = max_tests_per_category
+        self.max_tokens = max_tokens
+        self.max_tests_per_category = max_tests_per_category
         self.num_few_shot = num_few_shot
 
         self.test_preparation = test_preparation
         self.test_preparation.prepare_test_data(
             self.benchmark_name,
-            self._max_tests_per_category,
+            self.max_tests_per_category,
             self.num_few_shot,
-            self._max_tokens,
+            self.max_tokens,
         )
 
         self.one_by_one_runner = BBHOneByOneRunner(model_result_repo)

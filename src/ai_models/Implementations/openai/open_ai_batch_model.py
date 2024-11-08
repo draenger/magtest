@@ -50,6 +50,7 @@ class OpenAIBatchModel(BaseBatchModel):
         test_session_id: int = None,
     ) -> List[str]:
         batches = self._create_batch(metadata, test_session_id, benchmark_name)
+
         return batches
 
     def check_batch_results(
@@ -186,3 +187,37 @@ class OpenAIBatchModel(BaseBatchModel):
         for message in messages:
             messages_str += f"{message['role']}: {message['content']}\n"
         return super().estimate_tokens_amount(messages_str)
+
+    def get_input_file_url(self, batch_id: str) -> Optional[str]:
+        try:
+            batch_status = self.client.batches.retrieve(batch_id)
+            return batch_status.input_file_id
+        except Exception as e:
+            print(f"Error retrieving input file URL for batch {batch_id}: {e}")
+            return None
+
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
+        """Retry failed batch using its input file"""
+        try:
+            input_file_id = self.get_input_file_url(batch_id)
+            if not input_file_id:
+                print(f"Could not retrieve input file for batch {batch_id}")
+                return None
+
+            # Create new batch using the same input file
+            batch = self.client.batches.create(
+                input_file_id=input_file_id,
+                endpoint="/v1/chat/completions",
+                completion_window="24h",
+                metadata=metadata,
+            )
+            print(f"Created new batch {batch.id} from failed batch {batch_id}")
+            return batch.id
+
+        except Exception as e:
+            print(f"Error retrying batch {batch_id}: {e}")
+            return None

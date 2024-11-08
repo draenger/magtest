@@ -24,25 +24,24 @@ class MMLUBenchmark(BenchmarkInterface):
         self.batch_job_repo = batch_job_repo
         self.benchmark_name = f"MMLU-{num_few_shot}Shot"
 
-        self._max_tokens = max_tokens
-        self._max_tests_per_category = max_tests_per_category
+        self.max_tokens = max_tokens
+        self.max_tests_per_category = max_tests_per_category
         self.num_few_shot = num_few_shot
 
         self.test_preparation = test_preparation
         self.test_preparation.prepare_test_data(
             self.benchmark_name,
-            self._max_tests_per_category,
+            self.max_tests_per_category,
             self.num_few_shot,
-            self._max_tokens,
+            self.max_tokens,
         )
 
         self.one_by_one_runner = MMLUOneByOneRunner(model_result_repo)
         self.batch_runner = MMLUBatchRunner(model_result_repo, batch_job_repo)
 
-
     def estimate_model_results(self, model: ModelClientInterface):
         self.test_preparation.estimate_model_results(
-            self.benchmark_name, model.get_instant_model()
+            self.benchmark_name, model.get_instant_model(), self.max_tokens
         )
 
     def run_benchmark(self, model: ModelClientInterface, in_batch: bool = False):

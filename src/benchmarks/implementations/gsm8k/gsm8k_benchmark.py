@@ -23,28 +23,20 @@ class GSM8KBenchmark(BenchmarkInterface):
         self.batch_job_repo = batch_job_repo
         self.benchmark_name = f"GSM8K-{num_few_shot}Shot"
 
-        self._max_tokens = max_tokens
-        self._max_tests_per_category = max_tests_per_category
+        self.max_tokens = max_tokens
+        self.max_tests_per_category = max_tests_per_category
         self.num_few_shot = num_few_shot
 
         self.test_preparation = test_preparation
         self.test_preparation.prepare_test_data(
             self.benchmark_name,
-            self._max_tests_per_category,
+            self.max_tests_per_category,
             self.num_few_shot,
-            self._max_tokens,
+            self.max_tokens,
         )
 
         self.one_by_one_runner = GSM8KOneByOneRunner(model_result_repo)
         self.batch_runner = GSM8KBatchRunner(model_result_repo, batch_job_repo)
-
-    @property
-    def max_tokens(self) -> int:
-        return self._max_tokens
-
-    @property
-    def max_tests_per_category(self) -> int:
-        return self._max_tests_per_category
 
     def estimate_model_results(self, model: ModelClientInterface):
         self.test_preparation.estimate_model_results(
