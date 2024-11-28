@@ -11,13 +11,30 @@ class BatchModelInterface(ABC):
         pass
 
     @abstractmethod
-    def run_batch(self, benchmark_name: str, metadata: Optional[dict] = None) -> str:
+    def run_batch(
+        self,
+        benchmark_name: str,
+        metadata: Optional[dict] = None,
+        test_session_id: int = None,
+    ) -> List[str]:
         pass
 
     @abstractmethod
-    def check_batch_results(
-        self, benchmark_name: str, batch_id: str
+    def check_batch_status(self, batch_id: str) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def process_batch_results(
+        self, benchmark_name: str, batch_id: str, test_session_id: int
     ) -> Optional[BatchResponse]:
+        pass
+
+    @abstractmethod
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
         pass
 
     @abstractmethod

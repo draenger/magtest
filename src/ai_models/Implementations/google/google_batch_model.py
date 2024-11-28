@@ -147,23 +147,29 @@ class GoogleBatchModel(BaseBatchModel):
         except Exception as e:
             raise Exception(f"Failed to upload to cloud storage: {str(e)}")
 
-    def check_batch_results(
+    def check_batch_status(self, batch_id: str) -> Optional[str]:
+        try:
+            job = BatchPredictionJob(batch_id)
+            if job.has_ended:
+                return "completed" if job.has_succeeded else "failed"
+            return "in_progress"
+        except Exception as e:
+            print(f"Error checking batch status: {str(e)}")
+            return None
+
+    def process_batch_results(
         self, benchmark_name: str, batch_id: str, test_session_id: int
     ) -> Optional[BatchResponse]:
         try:
-            # Używamy pełnego resource name do pobrania zadania
             job = BatchPredictionJob(batch_id)
-
-            if not job.has_ended:
+            if not job.has_succeeded:
                 return None
 
-            if job.has_succeeded:
-                results = self._read_results_from_storage(job.output_location)
-                return self._process_results(results)
-            else:
-                raise Exception(f"Batch job failed: {job.error}")
+            results = self._read_results_from_storage(job.output_location)
+            return self._process_results(results)
         except Exception as e:
-            raise Exception(f"Failed to check batch results: {str(e)}")
+            print(f"Error processing batch results: {str(e)}")
+            return None
 
     def _read_results_from_storage(self, output_location: str) -> List[dict]:
         try:
@@ -235,3 +241,15 @@ class GoogleBatchModel(BaseBatchModel):
             return BatchResponse(processed_results)
         except Exception as e:
             raise Exception(f"Failed to process results: {str(e)}")
+
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
+        print("Retry not implemented for Google Batch Model")
+        return None
+
+    def get_input_file_url(self, batch_id: str) -> Optional[str]:
+        print("Get input file URL not implemented for Google Batch Model")
+        return None

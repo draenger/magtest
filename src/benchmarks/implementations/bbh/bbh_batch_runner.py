@@ -33,7 +33,6 @@ class BBHBatchRunner:
             prepared_question = prepared_questions.get(
                 model_result.prepared_question_id
             )
-
             if not prepared_question:
                 print(
                     f"Warning: PreparedQuestion not found for id {model_result.prepared_question_id}"
@@ -72,19 +71,36 @@ class BBHBatchRunner:
         prepared_questions,
         benchmark_name: str,
         test_session_id: int,
-    ):
-        batch_response = model.check_batch_results(
-            benchmark_name, batch_id, test_session_id
-        )
-        if batch_response:
-            self.process_batch_results(
-                batch_response, model_results, prepared_questions, model
+    ) -> bool:
+        status = model.check_batch_status(batch_id)
+        print(f"Batch status: {status}")
+
+        if status == "completed":
+            batch_response = model.process_batch_results(
+                benchmark_name, batch_id, test_session_id
             )
-            self.batch_job_repo.update_status(batch_id, "completed")
-            return True
-        else:
-            print(f"Batch job {batch_id} not completed yet.\n")
-            return False
+            if batch_response:
+                self.process_batch_results(
+                    batch_response, model_results, prepared_questions, model
+                )
+                self.batch_job_repo.update_status(batch_id, "completed")
+                return True
+        elif status == "failed":
+            print(f"Batch {batch_id} failed, attempting retry...")
+            self.batch_job_repo.update_status(batch_id, "retry")
+            new_batch_id = model.retry_batch(
+                batch_id, metadata={"description": f"Retry of failed batch {batch_id}"}
+            )
+            if new_batch_id:
+                self.batch_job_repo.add(
+                    test_session_id=test_session_id,
+                    benchmark_name=benchmark_name,
+                    model_name=model.get_model_name(),
+                    batch_id=new_batch_id,
+                )
+                print(f"Created new batch with ID: {new_batch_id}")
+
+        return False
 
     def process_batch_results(
         self,

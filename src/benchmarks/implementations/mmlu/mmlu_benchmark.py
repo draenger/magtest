@@ -79,6 +79,10 @@ class MMLUBenchmark(BenchmarkInterface):
         )
 
         for batch in batches:
+            # Skip batches that are already in retry status
+            if batch.status == "retry":
+                continue
+
             self.batch_runner.check_and_process_batch_results(
                 batch.batch_id,
                 model.get_batch_model(),

@@ -53,19 +53,13 @@ class OpenAIBatchModel(BaseBatchModel):
 
         return batches
 
-    def check_batch_results(
-        self, benchmark_name: str, batch_id: str, test_session_id: int
-    ) -> Optional[BatchResponse]:
-        batch_status = self.client.batches.retrieve(batch_id)
-        print(f"Batch status: {batch_status.status}")
-
-        if batch_status.status == "completed":
-            output_file_path = self._download_results(
-                batch_status.output_file_id, benchmark_name, test_session_id, batch_id
-            )
-            return self.process_batch_results(output_file_path)
-
-        return None
+    def check_batch_status(self, batch_id: str) -> Optional[str]:
+        try:
+            batch = self.client.batches.retrieve(batch_id)
+            return batch.status
+        except Exception as e:
+            print(f"Error retrieving batch {batch_id}: {str(e)}")
+            return None
 
     def cancel_batch(self, batch_id: str):
         return self.client.batches.cancel(batch_id)
@@ -73,34 +67,63 @@ class OpenAIBatchModel(BaseBatchModel):
     def list_batches(self, limit: int = 100):
         return self.client.batches.list(limit=limit)
 
-    def process_batch_results(self, output_file_path: str) -> BatchResponse:
+    def process_batch_results(
+        self, benchmark_name: str, batch_id: str, test_session_id: int
+    ) -> Optional[BatchResponse]:
+
+        try:
+            batch = self.client.batches.retrieve(batch_id)
+        except Exception as e:
+            print(f"Error retrieving batch {batch_id}: {str(e)}")
+            return None
+
+        if batch.status != "completed":
+            return None
+
+        try:
+            output_file_path = self._download_results(
+                batch.output_file_id,
+                benchmark_name,
+                test_session_id,
+                batch_id,
+            )
+        except Exception as e:
+            print(f"Error downloading results for batch {batch_id}: {str(e)}")
+            return None
+
         results = []
-        with open(output_file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                data = json.loads(line)
-                custom_id = data["custom_id"]
-                response_data = data["response"]
+        try:
+            with open(output_file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    data = json.loads(line)
+                    custom_id = data["custom_id"]
+                    response_data = data["response"]
 
-                if response_data["status_code"] == 200:
-                    response = response_data["body"]["choices"][0]["message"]["content"]
-                    usage_data = response_data["body"]["usage"]
-                    usage = Usage(
-                        usage_data["prompt_tokens"], usage_data["completion_tokens"]
-                    )
-                    status = "success"
-                else:
-                    response = None
-                    usage = None
-                    status = "failed"
+                    if response_data["status_code"] == 200:
+                        response = response_data["body"]["choices"][0]["message"][
+                            "content"
+                        ]
+                        usage_data = response_data["body"]["usage"]
+                        usage = Usage(
+                            usage_data["prompt_tokens"], usage_data["completion_tokens"]
+                        )
+                        status = "success"
+                    else:
+                        response = None
+                        usage = None
+                        status = "failed"
 
-                results.append(
-                    BatchResponseItem(
-                        custom_id=custom_id,
-                        response=response,
-                        usage=usage,
-                        status=status,
+                    results.append(
+                        BatchResponseItem(
+                            custom_id=custom_id,
+                            response=response,
+                            usage=usage,
+                            status=status,
+                        )
                     )
-                )
+        except Exception as e:
+            print(f"Error processing results for batch {batch_id}: {str(e)}")
+            return None
 
         return BatchResponse(results)
 

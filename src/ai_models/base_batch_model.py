@@ -13,8 +13,8 @@ class BaseBatchModel(BatchModelInterface):
     ):
         self.model_name = model_name
         self.tokenizer = tokenizer
-        self.input_token_cost = input_cost_per_million / 1_000_000 / 2
-        self.output_token_cost = output_cost_per_million / 1_000_000 / 2
+        self.input_token_cost = input_cost_per_million / 1_000_000
+        self.output_token_cost = output_cost_per_million / 1_000_000
         self.batch_queue_limit = batch_queue_limit
         self.requests = []
 
@@ -60,6 +60,15 @@ class BaseBatchModel(BatchModelInterface):
         )
 
     def list_batches(self, limit: int = 10):
+        raise NotImplementedError(
+            "This method should be implemented in the child class"
+        )
+
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
         raise NotImplementedError(
             "This method should be implemented in the child class"
         )

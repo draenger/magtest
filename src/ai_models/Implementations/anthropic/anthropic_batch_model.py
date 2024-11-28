@@ -49,14 +49,17 @@ class AnthropicBatchModel(BaseBatchModel):
         message_batch = self.client.beta.messages.batches.create(requests=self.requests)
         return [message_batch.id]
 
-    def check_batch_results(
-        self, benchmark_name: str, batch_id: str, test_session_id: int
-    ) -> Optional[BatchResponse]:
-        message_batch = self.client.beta.messages.batches.retrieve(batch_id)
-
-        if message_batch.processing_status == "ended":
-            return self.process_batch_results(batch_id)
-        return None
+    def check_batch_status(self, batch_id: str) -> Optional[str]:
+        try:
+            message_batch = self.client.beta.messages.batches.retrieve(batch_id)
+            if message_batch.processing_status == "ended":
+                return "completed"
+            elif message_batch.processing_status == "failed":
+                return "failed"
+            return "in_progress"
+        except Exception as e:
+            print(f"Error checking batch status: {str(e)}")
+            return None
 
     def cancel_batch(self, batch_id: str):
         return self.client.beta.messages.batches.cancel(batch_id)
@@ -64,32 +67,44 @@ class AnthropicBatchModel(BaseBatchModel):
     def list_batches(self, limit: int = 10):
         return self.client.beta.messages.batches.list(limit=limit)
 
-    def process_batch_results(self, batch_id: str) -> BatchResponse:
-        results = []
-        for result in self.client.beta.messages.batches.results(batch_id):
-            custom_id = result.custom_id
-            result_data = result.result
+    def process_batch_results(
+        self, benchmark_name: str, batch_id: str, test_session_id: int
+    ) -> Optional[BatchResponse]:
+        try:
+            message_batch = self.client.beta.messages.batches.retrieve(batch_id)
+            if message_batch.processing_status != "ended":
+                return None
 
-            if result_data.type == "succeeded":
-                message = result_data.message
-                response = message.content[0].text if message.content else None
-                usage = Usage(message.usage.input_tokens, message.usage.output_tokens)
-                status = "success"
-            else:
-                response = None
-                usage = None
-                status = result_data.type
+            results = []
+            for result in self.client.beta.messages.batches.results(batch_id):
+                custom_id = result.custom_id
+                result_data = result.result
 
-            results.append(
-                BatchResponseItem(
-                    custom_id=custom_id,
-                    response=response,
-                    usage=usage,
-                    status=status,
+                if result_data.type == "succeeded":
+                    message = result_data.message
+                    response = message.content[0].text if message.content else None
+                    usage = Usage(
+                        message.usage.input_tokens, message.usage.output_tokens
+                    )
+                    status = "success"
+                else:
+                    response = None
+                    usage = None
+                    status = result_data.type
+
+                results.append(
+                    BatchResponseItem(
+                        custom_id=custom_id,
+                        response=response,
+                        usage=usage,
+                        status=status,
+                    )
                 )
-            )
 
-        return BatchResponse(results)
+            return BatchResponse(results)
+        except Exception as e:
+            print(f"Error processing batch results: {str(e)}")
+            return None
 
     def estimate_tokens_amount(self, messages: List[dict]) -> int:
         total_tokens = 0
@@ -99,3 +114,15 @@ class AnthropicBatchModel(BaseBatchModel):
             else:
                 print(f"Warning: Unexpected message format: {message}")
         return total_tokens
+
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
+        print("Retry not implemented for Anthropic Batch Model")
+        return None
+
+    def get_input_file_url(self, batch_id: str) -> Optional[str]:
+        print("Get input file URL not implemented for Anthropic Batch Model")
+        return None

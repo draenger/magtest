@@ -62,31 +62,38 @@ class TestBatchModel(BaseBatchModel):
             for i in range(limit)
         ]
 
-    def process_batch_results(self, output_file_path: str) -> BatchResponse:
+    def process_batch_results(
+        self, benchmark_name: str, batch_id: str, test_session_id: int
+    ) -> Optional[BatchResponse]:
+        output_file_path = self._generate_results(benchmark_name, test_session_id)
         results = []
-        with open(output_file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                data = json.loads(line)
-                custom_id = data["custom_id"]
-                response_data = data["response"]["body"]
+        try:
+            with open(output_file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    data = json.loads(line)
+                    custom_id = data["custom_id"]
+                    response_data = data["response"]["body"]
 
-                response = response_data["choices"][0]["message"]["content"]
-                usage_data = response_data["usage"]
-                usage = Usage(
-                    usage_data["prompt_tokens"], usage_data["completion_tokens"]
-                )
-                status = "success"
-
-                results.append(
-                    BatchResponseItem(
-                        custom_id=custom_id,
-                        response=response,
-                        usage=usage,
-                        status=status,
+                    response = response_data["choices"][0]["message"]["content"]
+                    usage_data = response_data["usage"]
+                    usage = Usage(
+                        usage_data["prompt_tokens"], usage_data["completion_tokens"]
                     )
-                )
+                    status = "success"
 
-        return BatchResponse(results)
+                    results.append(
+                        BatchResponseItem(
+                            custom_id=custom_id,
+                            response=response,
+                            usage=usage,
+                            status=status,
+                        )
+                    )
+
+            return BatchResponse(results)
+        except Exception as e:
+            print(f"Error processing batch results: {str(e)}")
+            return None
 
     def _prepare_batch(self, benchmark_name, test_session_id):
         input_file_path = f"batch/{test_session_id}/{benchmark_name}/{self.model_name}_batch_requests.jsonl"
@@ -145,3 +152,18 @@ class TestBatchModel(BaseBatchModel):
                 output_file.write(json.dumps(result) + "\n")
 
         return output_file_path
+
+    def retry_batch(
+        self,
+        batch_id: str,
+        metadata: Optional[dict] = None,
+    ) -> Optional[str]:
+        print("Retry not implemented for Test Batch Model")
+        return None
+
+    def get_input_file_url(self, batch_id: str) -> Optional[str]:
+        print("Get input file URL not implemented for Test Batch Model")
+        return None
+
+    def check_batch_status(self, batch_id: str) -> Optional[str]:
+        return "completed"  # Test model always returns completed

@@ -45,12 +45,12 @@ class ModelRegistry:
                 )
 
     def register_test_models(self):
-        self.register_models("anthropic", TestBatchModel, TestInstantModel)
+        # self.register_models("anthropic", TestBatchModel, TestInstantModel)
         self.register_models("openai", TestBatchModel, TestInstantModel)
         self.register_models("google", TestBatchModel, TestInstantModel)
 
     def register_production_models(self):
-        self.register_models("anthropic", AnthropicBatchModel, AnthropicInstantModel)
+        # self.register_models("anthropic", AnthropicBatchModel, AnthropicInstantModel)
         self.register_models("openai", OpenAIBatchModel, OpenAIInstantModel)
         self.register_models("google", GoogleBatchModel, GoogleInstantModel)
 

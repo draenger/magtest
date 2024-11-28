@@ -33,7 +33,6 @@ class GSM8KBatchRunner:
             prepared_question = prepared_questions.get(
                 model_result.prepared_question_id
             )
-
             if not prepared_question:
                 print(
                     f"Warning: PreparedQuestion not found for id {model_result.prepared_question_id}"
@@ -72,19 +71,36 @@ class GSM8KBatchRunner:
         prepared_questions,
         benchmark_name: str,
         test_session_id: int,
-    ):
-        batch_response = model.check_batch_results(
-            benchmark_name, batch_id, test_session_id
-        )
-        if batch_response:
-            self.process_batch_results(
-                batch_response, model_results, prepared_questions, model
+    ) -> bool:
+        status = model.check_batch_status(batch_id)
+        print(f"Batch status: {status}")
+
+        if status == "completed":
+            batch_response = model.process_batch_results(
+                benchmark_name, batch_id, test_session_id
             )
-            self.batch_job_repo.update_status(batch_id, "completed")
-            return True
-        else:
-            print(f"Batch job {batch_id} not completed yet.\n")
-            return False
+            if batch_response:
+                self.process_batch_results(
+                    batch_response, model_results, prepared_questions, model
+                )
+                self.batch_job_repo.update_status(batch_id, "completed")
+                return True
+        elif status == "failed":
+            print(f"Batch {batch_id} failed, attempting retry...")
+            self.batch_job_repo.update_status(batch_id, "retry")
+            new_batch_id = model.retry_batch(
+                batch_id, metadata={"description": f"Retry of failed batch {batch_id}"}
+            )
+            if new_batch_id:
+                self.batch_job_repo.add(
+                    test_session_id=test_session_id,
+                    benchmark_name=benchmark_name,
+                    model_name=model.get_model_name(),
+                    batch_id=new_batch_id,
+                )
+                print(f"Created new batch with ID: {new_batch_id}")
+
+        return False
 
     def process_batch_results(
         self,
@@ -104,8 +120,6 @@ class GSM8KBatchRunner:
                 prepared_question = prepared_questions.get(
                     model_result.prepared_question_id
                 )
-
-                # Wyciągnij liczbę z odpowiedzi modelu
                 model_answer = self._extract_number(item.response)
                 correct_answer = float(
                     prepared_question.correct_answer.replace(",", ".")
@@ -133,13 +147,10 @@ class GSM8KBatchRunner:
                 print(f"Warning: Could not process result for custom_id {custom_id}")
 
     def _extract_number(self, response: str) -> float:
-        """Wyciąga końcową odpowiedź liczbową z odpowiedzi modelu."""
         try:
-            # Szukaj ostatniej linii zawierającej ####
             if "####" in response:
                 final_answer = response.split("####")[-1].strip()
                 if "," in final_answer:
-                    # Replace comma with dot only if it's between digits
                     parts = final_answer.split(",")
                     for i in range(len(parts) - 1):
                         if parts[i][-1:].isdigit() and parts[i + 1][:1].isdigit():
@@ -147,13 +158,9 @@ class GSM8KBatchRunner:
                         else:
                             parts[i] = parts[i] + ","
                     final_answer = "".join(parts)
-                # Konwertuj na float, usuwając wszystko poza liczbami i kropką
                 return float(
                     "".join(c for c in final_answer if c.isdigit() or c == ".")
                 )
             return float("".join(c for c in response if c.isdigit() or c == "."))
         except (ValueError, IndexError):
-            # print(f"Could not extract number from response: {response}")
-            return float(
-                "inf"
-            )  # Zwróć wartość, która na pewno nie będzie równa poprawnej odpowiedzi
+            return float("inf")
